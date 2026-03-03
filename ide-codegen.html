@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IDE - AI Code Generator</title>
+<style>
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg-dark: #1e1e2e;
+  --bg-darker: #181825;
+  --bg-sidebar: #1a1a28;
+  --bg-editor: #1e1e2e;
+  --bg-tab-active: #1e1e2e;
+  --bg-tab: #14141f;
+  --border: #2a2a3c;
+  --text: #cdd6f4;
+  --text-dim: #6c7086;
+  --text-bright: #f5f5f7;
+  --accent: #6c5ce7;
+  --accent-light: #a78bfa;
+  --green: #a6e3a1;
+  --blue: #89b4fa;
+  --yellow: #f9e2af;
+  --red: #f38ba8;
+  --peach: #fab387;
+  --pink: #f5c2e7;
+  --teal: #94e2d5;
+  --mauve: #cba6f7;
+}
+
+body {
+  font-family: 'Pretendard', sans-serif;
+  background: var(--bg-dark);
+  color: var(--text);
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ─── Title Bar ─── */
+.titlebar {
+  height: 40px; background: var(--bg-darker); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between; padding: 0 12px;
+  -webkit-app-region: drag;
+}
+.titlebar .left { display: flex; align-items: center; gap: 8px; }
+.titlebar .dots { display: flex; gap: 6px; }
+.titlebar .dots span { width: 12px; height: 12px; border-radius: 50%; }
+.titlebar .dots .r { background: #f38ba8; }
+.titlebar .dots .y { background: #f9e2af; }
+.titlebar .dots .g { background: #a6e3a1; }
+.titlebar .title { font-size: 12px; color: var(--text-dim); font-weight: 500; }
+.titlebar .right { display: flex; gap: 12px; font-size: 11px; color: var(--text-dim); }
+
+/* ─── Main Layout ─── */
+.main-layout { display: flex; height: calc(100vh - 40px); }
+
+/* ─── Activity Bar ─── */
+.activity-bar {
+  width: 48px; background: var(--bg-darker); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; align-items: center; padding-top: 8px; gap: 4px;
+}
+.activity-bar .icon {
+  width: 36px; height: 36px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; color: var(--text-dim); cursor: pointer; transition: all 0.15s;
+  position: relative;
+}
+.activity-bar .icon:hover { color: var(--text); background: rgba(108,92,231,0.1); }
+.activity-bar .icon.active {
+  color: var(--accent-light);
+}
+.activity-bar .icon.active::before {
+  content: ''; position: absolute; left: 0; top: 6px; bottom: 6px; width: 2px;
+  background: var(--accent); border-radius: 0 1px 1px 0;
+}
+
+/* ─── File Explorer ─── */
+.explorer {
+  width: 240px; background: var(--bg-sidebar); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; flex-shrink: 0;
+}
+.explorer-header {
+  padding: 10px 14px; font-size: 11px; font-weight: 600; color: var(--text-dim);
+  letter-spacing: 0.5px; text-transform: uppercase;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.file-tree { flex: 1; overflow-y: auto; padding: 4px 0; font-size: 13px; }
+.tree-item {
+  padding: 4px 12px 4px 16px; display: flex; align-items: center; gap: 6px;
+  cursor: pointer; color: var(--text-dim); transition: all 0.1s;
+  font-family: 'Pretendard', sans-serif;
+}
+.tree-item:hover { background: rgba(108,92,231,0.08); color: var(--text); }
+.tree-item.active { background: rgba(108,92,231,0.15); color: var(--accent-light); }
+.tree-item .icon { font-size: 14px; width: 18px; text-align: center; flex-shrink: 0; }
+.tree-item.folder { font-weight: 600; }
+.tree-item.indent-1 { padding-left: 28px; }
+.tree-item.indent-2 { padding-left: 44px; }
+.tree-item.indent-3 { padding-left: 60px; }
+
+/* ─── Editor Area ─── */
+.editor-area { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+/* Tabs */
+.editor-tabs {
+  height: 36px; background: var(--bg-darker); display: flex; align-items: stretch;
+  border-bottom: 1px solid var(--border);
+}
+.editor-tab {
+  padding: 0 16px; display: flex; align-items: center; gap: 8px;
+  font-size: 12px; color: var(--text-dim); cursor: pointer;
+  border-right: 1px solid var(--border); position: relative; transition: all 0.15s;
+  font-family: 'Pretendard', sans-serif;
+}
+.editor-tab.active {
+  background: var(--bg-tab-active); color: var(--text-bright);
+}
+.editor-tab.active::after {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: var(--accent);
+}
+.editor-tab .dot { width: 8px; height: 8px; border-radius: 50%; }
+.editor-tab .tsx { color: var(--blue); font-size: 11px; }
+
+/* Breadcrumb */
+.breadcrumb {
+  padding: 4px 16px; font-size: 11px; color: var(--text-dim);
+  background: var(--bg-editor); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 4px;
+}
+.breadcrumb span { opacity: 0.5; }
+
+/* Code Editor */
+.code-editor {
+  flex: 1; background: var(--bg-editor); overflow: auto; position: relative;
+}
+.code-lines {
+  display: flex; min-height: 100%; font-family: 'JetBrains Mono', monospace; font-size: 13px;
+  line-height: 1.65;
+}
+.line-numbers {
+  padding: 12px 0; text-align: right; color: var(--text-dim);
+  user-select: none; min-width: 48px; padding-right: 12px;
+  background: var(--bg-editor); position: sticky; left: 0;
+  font-size: 12px; opacity: 0.5;
+}
+.line-numbers div { padding: 0 4px; height: 21.45px; display: flex; align-items: center; justify-content: flex-end; }
+
+.code-content {
+  flex: 1; padding: 12px 16px; white-space: pre; overflow-x: auto;
+}
+
+/* Code line animation */
+.code-line {
+  height: 21.45px; display: flex; align-items: center;
+  opacity: 0; transform: translateX(8px);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.code-line.show { opacity: 1; transform: translateX(0); }
+.code-line.highlight-new {
+  background: rgba(108,92,231,0.08);
+  border-left: 2px solid var(--accent);
+  margin-left: -2px;
+}
+
+/* Syntax colors */
+.kw { color: var(--mauve); }        /* keyword */
+.str { color: var(--green); }       /* string */
+.fn { color: var(--blue); }         /* function */
+.type { color: var(--yellow); }     /* type */
+.cm { color: var(--text-dim); font-style: italic; }  /* comment */
+.op { color: var(--red); }          /* operator/punctuation */
+.tag { color: var(--blue); }        /* JSX tag */
+.attr { color: var(--peach); }      /* attribute */
+.num { color: var(--peach); }       /* number */
+.var { color: var(--text); }        /* variable */
+.imp { color: var(--pink); }        /* import */
+.hook { color: var(--teal); }       /* react hook */
+
+/* Status Bar */
+.statusbar {
+  height: 24px; background: var(--accent); display: flex; align-items: center;
+  justify-content: space-between; padding: 0 12px; font-size: 11px; color: #fff;
+}
+.statusbar .left, .statusbar .right { display: flex; align-items: center; gap: 12px; }
+
+/* ─── AI Chat Panel ─── */
+.ai-panel {
+  width: 380px; background: var(--bg-sidebar); border-left: 1px solid var(--border);
+  display: flex; flex-direction: column; flex-shrink: 0;
+}
+.ai-panel-header {
+  padding: 12px 16px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+}
+.ai-panel-header .ai-icon {
+  width: 30px; height: 30px; background: linear-gradient(135deg, #6c5ce7, #a78bfa);
+  border-radius: 8px; display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 14px;
+}
+.ai-panel-header .info .title { font-size: 13px; font-weight: 700; color: var(--text-bright); }
+.ai-panel-header .info .sub { font-size: 10px; color: var(--text-dim); margin-top: 1px; }
+
+.ai-messages {
+  flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px;
+}
+
+.msg {
+  max-width: 94%; padding: 10px 13px; border-radius: 12px;
+  font-size: 12.5px; line-height: 1.55;
+  opacity: 0; transform: translateY(6px);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.msg.show { opacity: 1; transform: translateY(0); }
+.msg.user {
+  align-self: flex-end; background: var(--accent); color: #fff;
+  border-bottom-right-radius: 4px;
+}
+.msg.ai {
+  align-self: flex-start; background: #252536; color: var(--text);
+  border-bottom-left-radius: 4px;
+}
+
+.msg .api-card {
+  margin-top: 8px; padding: 8px 10px; background: rgba(108,92,231,0.1);
+  border: 1px solid rgba(108,92,231,0.2); border-radius: 8px; font-size: 11px;
+}
+.msg .api-card .api-item {
+  padding: 4px 0; display: flex; align-items: center; gap: 6px;
+  border-bottom: 1px solid rgba(108,92,231,0.1);
+}
+.msg .api-card .api-item:last-child { border-bottom: none; }
+.msg .api-card .method {
+  padding: 1px 5px; border-radius: 4px; font-size: 10px; font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+}
+.msg .api-card .method.post { background: rgba(166,227,161,0.15); color: var(--green); }
+.msg .api-card .method.get { background: rgba(137,180,250,0.15); color: var(--blue); }
+.msg .api-card .path { font-family: 'JetBrains Mono', monospace; color: var(--text); font-size: 11px; }
+.msg .api-card .desc { color: var(--text-dim); font-size: 10px; margin-top: 1px; }
+
+.msg .comp-tag {
+  display: inline-flex; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 600;
+  background: rgba(108,92,231,0.15); color: var(--accent-light); margin: 0 1px;
+}
+
+.build-status {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 10px; background: rgba(108,92,231,0.1); border-radius: 8px;
+  font-size: 11px; color: var(--accent-light); font-weight: 600; margin-top: 4px;
+}
+.build-status .spinner {
+  width: 12px; height: 12px; border: 2px solid rgba(108,92,231,0.3);
+  border-top-color: var(--accent-light); border-radius: 50%;
+  animation: spin 0.7s linear infinite; flex-shrink: 0;
+}
+@keyframes spin { to{transform:rotate(360deg)} }
+.build-status.done { color: var(--green); background: rgba(166,227,161,0.08); }
+
+.typing-dots {
+  display: flex; gap: 4px; padding: 10px 13px; align-self: flex-start;
+  background: #252536; border-radius: 12px; border-bottom-left-radius: 4px;
+}
+.typing-dots .d {
+  width: 5px; height: 5px; background: var(--text-dim); border-radius: 50%;
+  animation: bounce 1.2s ease infinite;
+}
+.typing-dots .d:nth-child(2) { animation-delay: 0.2s; }
+.typing-dots .d:nth-child(3) { animation-delay: 0.4s; }
+@keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-4px)} }
+
+.ai-input {
+  padding: 10px 14px; border-top: 1px solid var(--border);
+  display: flex; align-items: flex-end; gap: 8px;
+}
+.ai-input textarea {
+  flex: 1; padding: 9px 12px; background: #252536; border: 1px solid var(--border);
+  border-radius: 10px; font-size: 12px; color: var(--text); outline: none;
+  font-family: 'Pretendard', sans-serif; transition: border-color 0.2s;
+  resize: none; line-height: 1.5; min-height: 20px; max-height: 72px;
+}
+.ai-input textarea:focus { border-color: var(--accent); }
+.ai-input textarea::placeholder { color: var(--text-dim); }
+.ai-input .send {
+  width: 32px; height: 32px; background: var(--accent); border: none; border-radius: 8px;
+  color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: 16px; transition: transform 0.15s; flex-shrink: 0;
+}
+.ai-input .send:hover { transform: scale(1.05); }
+.ai-input .send:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+/* editor cursor blink */
+.cursor-blink {
+  display: inline-block; width: 2px; height: 15px; background: var(--accent-light);
+  animation: cursorBlink 1s step-end infinite; vertical-align: middle; margin-left: 1px;
+}
+@keyframes cursorBlink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+/* scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- ─── Title Bar ─── -->
+<div class="titlebar">
+  <div class="left">
+    <div class="dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+    <span class="title">login-page.tsx — t-world-app — Visual Studio Code</span>
+  </div>
+  <div class="right">
+    <span>main</span>
+    <span>UTF-8</span>
+    <span>TypeScript React</span>
+  </div>
+</div>
+
+<!-- ─── Main ─── -->
+<div class="main-layout">
+
+  <!-- Activity Bar -->
+  <div class="activity-bar">
+    <div class="icon active" title="Explorer">📁</div>
+    <div class="icon" title="Search">🔍</div>
+    <div class="icon" title="Git">⑃</div>
+    <div class="icon" title="Debug">▷</div>
+    <div class="icon" title="Extensions">⧉</div>
+  </div>
+
+  <!-- File Explorer -->
+  <div class="explorer">
+    <div class="explorer-header"><span>EXPLORER</span><span style="cursor:pointer;font-size:14px">⋯</span></div>
+    <div class="file-tree">
+      <div class="tree-item folder"><span class="icon">▾</span> t-world-app</div>
+      <div class="tree-item folder indent-1"><span class="icon">▾</span> src</div>
+      <div class="tree-item folder indent-2"><span class="icon">▾</span> app</div>
+      <div class="tree-item indent-3"><span class="icon" style="color:var(--green)">◆</span> layout.tsx</div>
+      <div class="tree-item indent-3"><span class="icon" style="color:var(--green)">◆</span> page.tsx</div>
+      <div class="tree-item folder indent-2"><span class="icon">▾</span> login</div>
+      <div class="tree-item indent-3 active"><span class="icon" style="color:var(--blue)">◆</span> page.tsx</div>
+      <div class="tree-item folder indent-2"><span class="icon">▸</span> components</div>
+      <div class="tree-item folder indent-2"><span class="icon">▸</span> lib</div>
+      <div class="tree-item folder indent-2"><span class="icon">▸</span> hooks</div>
+      <div class="tree-item folder indent-2"><span class="icon">▸</span> styles</div>
+      <div class="tree-item folder indent-1"><span class="icon">▸</span> public</div>
+      <div class="tree-item indent-1"><span class="icon" style="color:var(--yellow)">◆</span> next.config.ts</div>
+      <div class="tree-item indent-1"><span class="icon" style="color:var(--blue)">◆</span> package.json</div>
+      <div class="tree-item indent-1"><span class="icon" style="color:var(--text-dim)">◆</span> tsconfig.json</div>
+    </div>
+  </div>
+
+  <!-- Editor -->
+  <div class="editor-area">
+    <div class="editor-tabs">
+      <div class="editor-tab"><span class="tsx">TSX</span> layout.tsx</div>
+      <div class="editor-tab active"><span class="tsx">TSX</span> page.tsx <span style="font-size:9px;color:var(--text-dim);margin-left:2px">login</span></div>
+    </div>
+    <div class="breadcrumb">
+      src <span>›</span> app <span>›</span> login <span>›</span> page.tsx
+    </div>
+    <div class="code-editor">
+      <div class="code-lines">
+        <div class="line-numbers" id="lineNumbers"></div>
+        <div class="code-content" id="codeContent"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Chat Panel -->
+  <div class="ai-panel">
+    <div class="ai-panel-header">
+      <div class="ai-icon">✦</div>
+      <div class="info">
+        <div class="title">AI Code Assistant</div>
+        <div class="sub">Design Studio + OASS 연동</div>
+      </div>
+    </div>
+    <div class="ai-messages" id="chatMessages"></div>
+    <div class="ai-input">
+      <textarea id="chatInput" rows="1" placeholder="코드 생성을 요청하세요..." readonly></textarea>
+      <button class="send" id="sendBtn">↑</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Status Bar -->
+<div class="statusbar">
+  <div class="left">
+    <span>⑃ main</span>
+    <span>✓ 0 errors</span>
+    <span>⚠ 0 warnings</span>
+  </div>
+  <div class="right">
+    <span>Ln 1, Col 1</span>
+    <span>TypeScript React</span>
+    <span>Prettier</span>
+  </div>
+</div>
+
+<script>
+const chatEl = document.getElementById('chatMessages');
+const inputEl = document.getElementById('chatInput');
+const sendBtn = document.getElementById('sendBtn');
+const codeEl = document.getElementById('codeContent');
+const lineNumEl = document.getElementById('lineNumbers');
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const scroll = () => { chatEl.scrollTop = chatEl.scrollHeight; };
+
+// ─── Chat helpers ───
+function addMsg(type, html) {
+  return new Promise(resolve => {
+    const m = document.createElement('div');
+    m.className = `msg ${type}`;
+    m.innerHTML = html;
+    chatEl.appendChild(m); scroll();
+    requestAnimationFrame(() => requestAnimationFrame(() => { m.classList.add('show'); resolve(m); }));
+  });
+}
+function showDots() {
+  const d = document.createElement('div');
+  d.className = 'typing-dots'; d.id = 'dots';
+  d.innerHTML = '<div class="d"></div><div class="d"></div><div class="d"></div>';
+  chatEl.appendChild(d); scroll();
+}
+function hideDots() { document.getElementById('dots')?.remove(); }
+
+async function typeInto(text, speed = 35) {
+  inputEl.value = '';
+  for (let i = 0; i < text.length; i++) {
+    inputEl.value += text[i];
+    // Auto-resize textarea
+    inputEl.style.height = 'auto';
+    inputEl.style.height = Math.min(inputEl.scrollHeight, 72) + 'px';
+    await sleep(speed);
+  }
+}
+
+// ─── Code editor helpers ───
+let currentLines = [];
+
+function renderLines(lines) {
+  currentLines = lines;
+  lineNumEl.innerHTML = '';
+  codeEl.innerHTML = '';
+  lines.forEach((line, i) => {
+    const ln = document.createElement('div');
+    ln.textContent = i + 1;
+    lineNumEl.appendChild(ln);
+    const cl = document.createElement('div');
+    cl.className = 'code-line show';
+    cl.innerHTML = line;
+    codeEl.appendChild(cl);
+  });
+}
+
+async function typeCode(lines, delayPerLine = 80, highlight = true) {
+  for (let i = 0; i < lines.length; i++) {
+    currentLines.push(lines[i]);
+    const ln = document.createElement('div');
+    ln.textContent = currentLines.length;
+    lineNumEl.appendChild(ln);
+    const cl = document.createElement('div');
+    cl.className = 'code-line';
+    cl.innerHTML = lines[i];
+    if (highlight) cl.classList.add('highlight-new');
+    codeEl.appendChild(cl);
+    await sleep(delayPerLine);
+    cl.classList.add('show');
+    codeEl.parentElement.parentElement.scrollTop = codeEl.parentElement.parentElement.scrollHeight;
+  }
+  if (highlight) {
+    setTimeout(() => {
+      document.querySelectorAll('.highlight-new').forEach(el => el.classList.remove('highlight-new'));
+    }, 2000);
+  }
+}
+
+function clearCode() {
+  currentLines = [];
+  lineNumEl.innerHTML = '';
+  codeEl.innerHTML = '';
+}
+
+// ─── Code data (same as before) ───
+const emptyLines = [
+  `<span class="cm">// src/app/login/page.tsx</span>`,
+  ``,
+  `<span class="kw">export default function</span> <span class="fn">LoginPage</span>() {`,
+  `  <span class="kw">return</span> (`,
+  `    <span class="op">&lt;</span><span class="tag">div</span><span class="op">&gt;</span>`,
+  `      <span class="cm">{/* TODO: 로그인 페이지 구현 */}</span>`,
+  `    <span class="op">&lt;/</span><span class="tag">div</span><span class="op">&gt;</span>`,
+  `  )`,
+  `}`,
+];
+
+const publishedLines = [
+  `<span class="cm">// src/app/login/page.tsx</span>`,
+  `<span class="cm">// Design Studio Page ID: Login-0001</span>`,
+  ``,
+  `<span class="kw">import</span> { <span class="type">TwImage</span>, <span class="type">TwText</span>, <span class="type">TwInput</span>, <span class="type">TwCheckbox</span>, <span class="type">TwButton</span> } <span class="kw">from</span> <span class="str">'@tworld-ds/react'</span>`,
+  `<span class="kw">import</span> <span class="var">styles</span> <span class="kw">from</span> <span class="str">'./login.module.css'</span>`,
+  ``,
+  `<span class="kw">export default function</span> <span class="fn">LoginPage</span>() {`,
+  `  <span class="kw">return</span> (`,
+  `    <span class="op">&lt;</span><span class="tag">main</span> <span class="attr">className</span><span class="op">=</span><span class="str">{styles.container}</span><span class="op">&gt;</span>`,
+  `      <span class="op">&lt;</span><span class="tag">section</span> <span class="attr">className</span><span class="op">=</span><span class="str">{styles.loginCard}</span><span class="op">&gt;</span>`,
+  ``,
+  `        <span class="cm">{/* 로고 */}</span>`,
+  `        <span class="op">&lt;</span><span class="type">TwImage</span>`,
+  `          <span class="attr">src</span><span class="op">=</span><span class="str">"/logo-tworld.svg"</span>`,
+  `          <span class="attr">alt</span><span class="op">=</span><span class="str">"T world"</span>`,
+  `          <span class="attr">width</span><span class="op">={</span><span class="num">56</span><span class="op">}</span>`,
+  `          <span class="attr">height</span><span class="op">={</span><span class="num">56</span><span class="op">}</span>`,
+  `          <span class="attr">className</span><span class="op">=</span><span class="str">{styles.logo}</span>`,
+  `        <span class="op">/&gt;</span>`,
+  ``,
+  `        <span class="cm">{/* 타이틀 */}</span>`,
+  `        <span class="op">&lt;</span><span class="type">TwText</span> <span class="attr">variant</span><span class="op">=</span><span class="str">"heading-lg"</span> <span class="attr">className</span><span class="op">=</span><span class="str">{styles.title}</span><span class="op">&gt;</span>`,
+  `          로그인`,
+  `        <span class="op">&lt;/</span><span class="type">TwText</span><span class="op">&gt;</span>`,
+  `        <span class="op">&lt;</span><span class="type">TwText</span> <span class="attr">variant</span><span class="op">=</span><span class="str">"body-sm"</span> <span class="attr">color</span><span class="op">=</span><span class="str">"secondary"</span><span class="op">&gt;</span>`,
+  `          T world 계정으로 로그인하세요`,
+  `        <span class="op">&lt;/</span><span class="type">TwText</span><span class="op">&gt;</span>`,
+  ``,
+  `        <span class="cm">{/* 입력 필드 */}</span>`,
+  `        <span class="op">&lt;</span><span class="tag">div</span> <span class="attr">className</span><span class="op">=</span><span class="str">{styles.formGroup}</span><span class="op">&gt;</span>`,
+  `          <span class="op">&lt;</span><span class="type">TwInput</span>`,
+  `            <span class="attr">label</span><span class="op">=</span><span class="str">"아이디"</span>`,
+  `            <span class="attr">placeholder</span><span class="op">=</span><span class="str">"이메일 또는 아이디 입력"</span>`,
+  `          <span class="op">/&gt;</span>`,
+  `          <span class="op">&lt;</span><span class="type">TwInput</span>`,
+  `            <span class="attr">label</span><span class="op">=</span><span class="str">"비밀번호"</span>`,
+  `            <span class="attr">type</span><span class="op">=</span><span class="str">"password"</span>`,
+  `            <span class="attr">placeholder</span><span class="op">=</span><span class="str">"비밀번호 입력"</span>`,
+  `          <span class="op">/&gt;</span>`,
+  `        <span class="op">&lt;/</span><span class="tag">div</span><span class="op">&gt;</span>`,
+  ``,
+  `        <span class="cm">{/* 체크박스 + 비밀번호 찾기 */}</span>`,
+  `        <span class="op">&lt;</span><span class="tag">div</span> <span class="attr">className</span><span class="op">=</span><span class="str">{styles.options}</span><span class="op">&gt;</span>`,
+  `          <span class="op">&lt;</span><span class="type">TwCheckbox</span> <span class="attr">label</span><span class="op">=</span><span class="str">"로그인 상태 유지"</span> <span class="op">/&gt;</span>`,
+  `          <span class="op">&lt;</span><span class="type">TwButton</span> <span class="attr">variant</span><span class="op">=</span><span class="str">"text"</span> <span class="attr">size</span><span class="op">=</span><span class="str">"sm"</span><span class="op">&gt;</span>비밀번호 찾기<span class="op">&lt;/</span><span class="type">TwButton</span><span class="op">&gt;</span>`,
+  `        <span class="op">&lt;/</span><span class="tag">div</span><span class="op">&gt;</span>`,
+  ``,
+  `        <span class="cm">{/* 로그인 버튼 */}</span>`,
+  `        <span class="op">&lt;</span><span class="type">TwButton</span> <span class="attr">variant</span><span class="op">=</span><span class="str">"primary"</span> <span class="attr">size</span><span class="op">=</span><span class="str">"lg"</span> <span class="attr">fullWidth</span><span class="op">&gt;</span>`,
+  `          로그인`,
+  `        <span class="op">&lt;/</span><span class="type">TwButton</span><span class="op">&gt;</span>`,
+  ``,
+  `        <span class="cm">{/* 회원가입 */}</span>`,
+  `        <span class="op">&lt;</span><span class="type">TwText</span> <span class="attr">variant</span><span class="op">=</span><span class="str">"body-sm"</span> <span class="attr">align</span><span class="op">=</span><span class="str">"center"</span><span class="op">&gt;</span>`,
+  `          아직 계정이 없으신가요?{<span class="str">' '</span>}`,
+  `          <span class="op">&lt;</span><span class="type">TwButton</span> <span class="attr">variant</span><span class="op">=</span><span class="str">"text"</span> <span class="attr">size</span><span class="op">=</span><span class="str">"sm"</span><span class="op">&gt;</span>회원가입<span class="op">&lt;/</span><span class="type">TwButton</span><span class="op">&gt;</span>`,
+  `        <span class="op">&lt;/</span><span class="type">TwText</span><span class="op">&gt;</span>`,
+  ``,
+  `      <span class="op">&lt;/</span><span class="tag">section</span><span class="op">&gt;</span>`,
+  `    <span class="op">&lt;/</span><span class="tag">main</span><span class="op">&gt;</span>`,
+  `  )`,
+  `}`,
+];
+
+const apiIntegratedLines = [
+  `<span class="cm">// src/app/login/page.tsx</span>`,
+  `<span class="cm">// Design Studio Page ID: Login-0001</span>`,
+  `<span class="cm">// OASS API: auth/login, auth/token-refresh, user/validate</span>`,
+  ``,
+  `<span class="str">'use client'</span>`,
+  ``,
+  `<span class="kw">import</span> { <span class="hook">useState</span> } <span class="kw">from</span> <span class="str">'react'</span>`,
+  `<span class="kw">import</span> { <span class="fn">useRouter</span> } <span class="kw">from</span> <span class="str">'next/navigation'</span>`,
+  `<span class="kw">import</span> { <span class="fn">useForm</span> } <span class="kw">from</span> <span class="str">'react-hook-form'</span>`,
+  `<span class="kw">import</span> { <span class="var">z</span> } <span class="kw">from</span> <span class="str">'zod'</span>`,
+  `<span class="kw">import</span> { <span class="fn">zodResolver</span> } <span class="kw">from</span> <span class="str">'@hookform/resolvers/zod'</span>`,
+  `<span class="kw">import</span> { <span class="type">TwImage</span>, <span class="type">TwText</span>, <span class="type">TwInput</span>, <span class="type">TwCheckbox</span>, <span class="type">TwButton</span> } <span class="kw">from</span> <span class="str">'@tworld-ds/react'</span>`,
+  `<span class="kw">import</span> { <span class="fn">authLogin</span>, <span class="fn">validateUser</span>, <span class="fn">refreshToken</span> } <span class="kw">from</span> <span class="str">'@/lib/api/oass'</span>`,
+  `<span class="kw">import</span> { <span class="fn">setTokens</span> } <span class="kw">from</span> <span class="str">'@/lib/auth/token-store'</span>`,
+  `<span class="kw">import</span> <span class="var">styles</span> <span class="kw">from</span> <span class="str">'./login.module.css'</span>`,
+  ``,
+  `<span class="cm">// ─── 유효성 검증 스키마 ───</span>`,
+  `<span class="kw">const</span> <span class="var">loginSchema</span> <span class="op">=</span> <span class="var">z</span>.<span class="fn">object</span>({`,
+  `  <span class="var">userId</span>: <span class="var">z</span>.<span class="fn">string</span>().<span class="fn">min</span>(<span class="num">1</span>, <span class="str">'아이디를 입력해주세요'</span>),`,
+  `  <span class="var">password</span>: <span class="var">z</span>.<span class="fn">string</span>().<span class="fn">min</span>(<span class="num">8</span>, <span class="str">'비밀번호는 8자 이상이어야 합니다'</span>),`,
+  `  <span class="var">keepLogin</span>: <span class="var">z</span>.<span class="fn">boolean</span>().<span class="fn">default</span>(<span class="num">false</span>),`,
+  `})`,
+  ``,
+  `<span class="kw">type</span> <span class="type">LoginFormData</span> <span class="op">=</span> <span class="var">z</span>.<span class="fn">infer</span><span class="op">&lt;</span><span class="kw">typeof</span> <span class="var">loginSchema</span><span class="op">&gt;</span>`,
+  ``,
+  `<span class="kw">export default function</span> <span class="fn">LoginPage</span>() {`,
+  `  <span class="kw">const</span> <span class="var">router</span> <span class="op">=</span> <span class="fn">useRouter</span>()`,
+  `  <span class="kw">const</span> [<span class="var">error</span>, <span class="fn">setError</span>] <span class="op">=</span> <span class="hook">useState</span><span class="op">&lt;</span><span class="type">string</span> <span class="op">|</span> <span class="type">null</span><span class="op">&gt;</span>(<span class="num">null</span>)`,
+  `  <span class="kw">const</span> [<span class="var">isLoading</span>, <span class="fn">setIsLoading</span>] <span class="op">=</span> <span class="hook">useState</span>(<span class="num">false</span>)`,
+  ``,
+  `  <span class="kw">const</span> { <span class="var">register</span>, <span class="var">handleSubmit</span>, <span class="var">formState</span>: { <span class="var">errors</span> } } <span class="op">=</span> <span class="fn">useForm</span><span class="op">&lt;</span><span class="type">LoginFormData</span><span class="op">&gt;</span>({`,
+  `    <span class="var">resolver</span>: <span class="fn">zodResolver</span>(<span class="var">loginSchema</span>),`,
+  `  })`,
+  ``,
+  `  <span class="cm">// ─── OASS API: POST /auth/login ───</span>`,
+  `  <span class="kw">const</span> <span class="fn">onSubmit</span> <span class="op">=</span> <span class="kw">async</span> (<span class="var">data</span>: <span class="type">LoginFormData</span>) <span class="kw">=&gt;</span> {`,
+  `    <span class="fn">setIsLoading</span>(<span class="num">true</span>)`,
+  `    <span class="fn">setError</span>(<span class="num">null</span>)`,
+  ``,
+  `    <span class="kw">try</span> {`,
+  `      <span class="cm">// Step 1: 사용자 검증 (GET /user/validate)</span>`,
+  `      <span class="kw">const</span> <span class="var">isValid</span> <span class="op">=</span> <span class="kw">await</span> <span class="fn">validateUser</span>(<span class="var">data</span>.<span class="var">userId</span>)`,
+  `      <span class="kw">if</span> (!<span class="var">isValid</span>) {`,
+  `        <span class="fn">setError</span>(<span class="str">'존재하지 않는 계정입니다'</span>)`,
+  `        <span class="kw">return</span>`,
+  `      }`,
+  ``,
+  `      <span class="cm">// Step 2: 로그인 요청 (POST /auth/login)</span>`,
+  `      <span class="kw">const</span> { <span class="var">accessToken</span>, <span class="var">refreshToken</span>: <span class="var">refresh</span> } <span class="op">=</span> <span class="kw">await</span> <span class="fn">authLogin</span>({`,
+  `        <span class="var">userId</span>: <span class="var">data</span>.<span class="var">userId</span>,`,
+  `        <span class="var">password</span>: <span class="var">data</span>.<span class="var">password</span>,`,
+  `        <span class="var">keepLogin</span>: <span class="var">data</span>.<span class="var">keepLogin</span>,`,
+  `      })`,
+  ``,
+  `      <span class="cm">// Step 3: 토큰 저장</span>`,
+  `      <span class="fn">setTokens</span>({ <span class="var">accessToken</span>, <span class="var">refreshToken</span>: <span class="var">refresh</span> })`,
+  ``,
+  `      <span class="cm">// Step 4: 메인 페이지 이동</span>`,
+  `      <span class="var">router</span>.<span class="fn">push</span>(<span class="str">'/'</span>)`,
+  `    } <span class="kw">catch</span> (<span class="var">err</span>) {`,
+  `      <span class="fn">setError</span>(<span class="str">'아이디 또는 비밀번호가 올바르지 않습니다'</span>)`,
+  `    } <span class="kw">finally</span> {`,
+  `      <span class="fn">setIsLoading</span>(<span class="num">false</span>)`,
+  `    }`,
+  `  }`,
+  ``,
+  `  <span class="kw">return</span> (`,
+  `    <span class="op">&lt;</span><span class="tag">main</span> <span class="attr">className</span><span class="op">=</span><span class="str">{styles.container}</span><span class="op">&gt;</span>`,
+  `      <span class="op">&lt;</span><span class="tag">section</span> <span class="attr">className</span><span class="op">=</span><span class="str">{styles.loginCard}</span><span class="op">&gt;</span>`,
+  `        <span class="op">&lt;</span><span class="type">TwImage</span> <span class="attr">src</span><span class="op">=</span><span class="str">"/logo-tworld.svg"</span> <span class="attr">alt</span><span class="op">=</span><span class="str">"T world"</span> <span class="attr">width</span><span class="op">={</span><span class="num">56</span><span class="op">}</span> <span class="attr">height</span><span class="op">={</span><span class="num">56</span><span class="op">}</span> <span class="op">/&gt;</span>`,
+  ``,
+  `        <span class="op">&lt;</span><span class="type">TwText</span> <span class="attr">variant</span><span class="op">=</span><span class="str">"heading-lg"</span><span class="op">&gt;</span>로그인<span class="op">&lt;/</span><span class="type">TwText</span><span class="op">&gt;</span>`,
+  `        <span class="op">&lt;</span><span class="type">TwText</span> <span class="attr">variant</span><span class="op">=</span><span class="str">"body-sm"</span> <span class="attr">color</span><span class="op">=</span><span class="str">"secondary"</span><span class="op">&gt;</span>T world 계정으로 로그인하세요<span class="op">&lt;/</span><span class="type">TwText</span><span class="op">&gt;</span>`,
+  ``,
+  `        <span class="op">&lt;</span><span class="tag">form</span> <span class="attr">onSubmit</span><span class="op">={</span><span class="fn">handleSubmit</span>(<span class="fn">onSubmit</span>)<span class="op">}</span><span class="op">&gt;</span>`,
+  `          <span class="op">&lt;</span><span class="type">TwInput</span>`,
+  `            <span class="attr">label</span><span class="op">=</span><span class="str">"아이디"</span>`,
+  `            <span class="attr">placeholder</span><span class="op">=</span><span class="str">"이메일 또는 아이디 입력"</span>`,
+  `            <span class="attr">error</span><span class="op">={</span><span class="var">errors</span>.<span class="var">userId</span>?.<span class="var">message</span><span class="op">}</span>`,
+  `            <span class="op">{...</span><span class="fn">register</span>(<span class="str">'userId'</span>)<span class="op">}</span>`,
+  `          <span class="op">/&gt;</span>`,
+  `          <span class="op">&lt;</span><span class="type">TwInput</span>`,
+  `            <span class="attr">label</span><span class="op">=</span><span class="str">"비밀번호"</span>`,
+  `            <span class="attr">type</span><span class="op">=</span><span class="str">"password"</span>`,
+  `            <span class="attr">placeholder</span><span class="op">=</span><span class="str">"비밀번호 입력"</span>`,
+  `            <span class="attr">error</span><span class="op">={</span><span class="var">errors</span>.<span class="var">password</span>?.<span class="var">message</span><span class="op">}</span>`,
+  `            <span class="op">{...</span><span class="fn">register</span>(<span class="str">'password'</span>)<span class="op">}</span>`,
+  `          <span class="op">/&gt;</span>`,
+  ``,
+  `          {<span class="var">error</span> <span class="op">&amp;&amp;</span> <span class="op">&lt;</span><span class="type">TwText</span> <span class="attr">variant</span><span class="op">=</span><span class="str">"body-sm"</span> <span class="attr">color</span><span class="op">=</span><span class="str">"error"</span><span class="op">&gt;</span>{<span class="var">error</span>}<span class="op">&lt;/</span><span class="type">TwText</span><span class="op">&gt;</span>}`,
+  ``,
+  `          <span class="op">&lt;</span><span class="tag">div</span> <span class="attr">className</span><span class="op">=</span><span class="str">{styles.options}</span><span class="op">&gt;</span>`,
+  `            <span class="op">&lt;</span><span class="type">TwCheckbox</span> <span class="attr">label</span><span class="op">=</span><span class="str">"로그인 상태 유지"</span> <span class="op">{...</span><span class="fn">register</span>(<span class="str">'keepLogin'</span>)<span class="op">}</span> <span class="op">/&gt;</span>`,
+  `            <span class="op">&lt;</span><span class="type">TwButton</span> <span class="attr">variant</span><span class="op">=</span><span class="str">"text"</span> <span class="attr">size</span><span class="op">=</span><span class="str">"sm"</span><span class="op">&gt;</span>비밀번호 찾기<span class="op">&lt;/</span><span class="type">TwButton</span><span class="op">&gt;</span>`,
+  `          <span class="op">&lt;/</span><span class="tag">div</span><span class="op">&gt;</span>`,
+  ``,
+  `          <span class="op">&lt;</span><span class="type">TwButton</span>`,
+  `            <span class="attr">type</span><span class="op">=</span><span class="str">"submit"</span>`,
+  `            <span class="attr">variant</span><span class="op">=</span><span class="str">"primary"</span>`,
+  `            <span class="attr">size</span><span class="op">=</span><span class="str">"lg"</span>`,
+  `            <span class="attr">fullWidth</span>`,
+  `            <span class="attr">loading</span><span class="op">={</span><span class="var">isLoading</span><span class="op">}</span>`,
+  `          <span class="op">&gt;</span>`,
+  `            로그인`,
+  `          <span class="op">&lt;/</span><span class="type">TwButton</span><span class="op">&gt;</span>`,
+  `        <span class="op">&lt;/</span><span class="tag">form</span><span class="op">&gt;</span>`,
+  ``,
+  `        <span class="op">&lt;</span><span class="type">TwText</span> <span class="attr">variant</span><span class="op">=</span><span class="str">"body-sm"</span> <span class="attr">align</span><span class="op">=</span><span class="str">"center"</span><span class="op">&gt;</span>`,
+  `          아직 계정이 없으신가요?{<span class="str">' '</span>}`,
+  `          <span class="op">&lt;</span><span class="type">TwButton</span> <span class="attr">variant</span><span class="op">=</span><span class="str">"text"</span> <span class="attr">size</span><span class="op">=</span><span class="str">"sm"</span><span class="op">&gt;</span>회원가입<span class="op">&lt;/</span><span class="type">TwButton</span><span class="op">&gt;</span>`,
+  `        <span class="op">&lt;/</span><span class="type">TwText</span><span class="op">&gt;</span>`,
+  `      <span class="op">&lt;/</span><span class="tag">section</span><span class="op">&gt;</span>`,
+  `    <span class="op">&lt;/</span><span class="tag">main</span><span class="op">&gt;</span>`,
+  `  )`,
+  `}`,
+];
+
+// ═══════════════════════════════════════
+// SCENARIOS
+// ═══════════════════════════════════════
+const scenarios = [
+  // ── 1: 퍼블리싱 요청 ──
+  {
+    prefill: '디자인스튜디오에 작성된 페이지 ID Login-0001 페이지를 퍼블리싱해줘',
+    userMsg: '디자인스튜디오에 작성된 페이지 ID <strong>Login-0001</strong> 페이지를 퍼블리싱해줘',
+    run: async () => {
+      showDots(); await sleep(1000); hideDots();
+      await addMsg('ai', `Design Studio에서 <span class="comp-tag">Login-0001</span> 페이지를 조회합니다.<br><br>
+        페이지 구성 컴포넌트:<br>
+        <span class="comp-tag">TwImage</span>
+        <span class="comp-tag">TwText ×3</span>
+        <span class="comp-tag">TwInput ×2</span>
+        <span class="comp-tag">TwCheckbox</span>
+        <span class="comp-tag">TwButton ×3</span><br><br>
+        T-world 디자인 시스템 기반 TSX 코드를 생성합니다.`);
+      await sleep(500);
+      await addMsg('ai', '<div class="build-status" id="status1"><div class="spinner"></div><span>page.tsx에 코드를 작성하는 중...</span></div>');
+      await sleep(400);
+      clearCode();
+      await typeCode(publishedLines, 55);
+      document.getElementById('status1').classList.add('done');
+      document.getElementById('status1').innerHTML = '<span>✅ 퍼블리싱 코드 생성 완료 — 55 lines</span>';
+      await sleep(500);
+      showDots(); await sleep(700); hideDots();
+      await addMsg('ai', '<span class="comp-tag">Login-0001</span> 페이지의 퍼블리싱이 완료되었습니다. 디자인 시스템 컴포넌트를 활용한 마크업과 스타일이 적용되어 있습니다.');
+      await sleep(800);
+      // AI proactively asks about OASS
+      showDots(); await sleep(800); hideDots();
+      await addMsg('ai', '💡 로그인에 필요한 API들을 <strong>OASS</strong>에서 검색하여 적용해드릴까요?');
+    }
+  },
+
+  // ── 2: OASS API 적용 ──
+  {
+    prefill: '네 부탁합니다',
+    userMsg: '네 부탁합니다',
+    run: async () => {
+      showDots(); await sleep(1200); hideDots();
+      await addMsg('ai', `OASS 검색 결과, 로그인 관련 API는 다음 3개입니다:
+        <div class="api-card">
+          <div class="api-item"><span class="method post">POST</span><div><div class="path">/auth/login</div><div class="desc">사용자 인증 및 JWT 토큰 발급</div></div></div>
+          <div class="api-item"><span class="method post">POST</span><div><div class="path">/auth/token-refresh</div><div class="desc">리프레시 토큰으로 액세스 토큰 갱신</div></div></div>
+          <div class="api-item"><span class="method get">GET</span><div><div class="path">/user/validate?userId={id}</div><div class="desc">사용자 계정 존재 여부 확인</div></div></div>
+        </div><br>API 호출 로직을 적용하겠습니다.`);
+      await sleep(600);
+      await addMsg('ai', '<div class="build-status" id="status2"><div class="spinner"></div><span>비즈니스 로직 및 데이터 바인딩 적용 중...</span></div>');
+      await sleep(500);
+      clearCode();
+      await typeCode(apiIntegratedLines, 45);
+      document.getElementById('status2').classList.add('done');
+      document.getElementById('status2').innerHTML = '<span>✅ API 연동 완료 — 97 lines</span>';
+      await sleep(500);
+      showDots(); await sleep(800); hideDots();
+      await addMsg('ai', `모든 작업이 완료되었습니다! 🎉<br><br>
+        <strong style="font-size:11px">적용된 항목:</strong><br>
+        <span class="comp-tag">react-hook-form</span> + <span class="comp-tag">zod</span> 폼 유효성 검증<br>
+        <span class="comp-tag">POST /auth/login</span> 로그인 API 호출<br>
+        <span class="comp-tag">GET /user/validate</span> 사용자 사전 검증<br>
+        <span class="comp-tag">token-store</span> JWT 토큰 저장 및 관리<br>
+        <span class="comp-tag">에러 핸들링</span> + <span class="comp-tag">로딩 상태</span> UI 바인딩`);
+    }
+  },
+];
+
+// ═══════════════════════════════
+// CONTROLLER
+// ═══════════════════════════════
+let currentScenario = 0;
+let isRunning = false;
+let waitingForClick = false;
+
+function resetTextarea() {
+  inputEl.value = '';
+  inputEl.style.height = 'auto';
+}
+
+async function prefillNext() {
+  if (currentScenario >= scenarios.length) {
+    sendBtn.disabled = true;
+    return;
+  }
+  const sc = scenarios[currentScenario];
+  await sleep(600);
+  await typeInto(sc.prefill);
+  waitingForClick = true;
+  sendBtn.disabled = false;
+}
+
+async function onSend() {
+  if (!waitingForClick || isRunning) return;
+  waitingForClick = false;
+  isRunning = true;
+  sendBtn.disabled = true;
+
+  const sc = scenarios[currentScenario];
+  resetTextarea();
+  await addMsg('user', sc.userMsg);
+  await sleep(300);
+  await sc.run();
+
+  isRunning = false;
+  currentScenario++;
+  await prefillNext();
+}
+
+sendBtn.addEventListener('click', onSend);
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey && waitingForClick && !isRunning) {
+    e.preventDefault();
+    onSend();
+  }
+});
+
+// Init: show empty file, then prefill first scenario
+renderLines(emptyLines);
+sendBtn.disabled = true;
+prefillNext();
+</script>
+</body>
+</html>

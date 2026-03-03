@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Design Studio - AI Builder</title>
+<style>
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #f5f5f7; color: #1a1a2e; height: 100vh; overflow: hidden;
+}
+
+/* ─── Top Bar ─── */
+.topbar {
+  height: 52px; background: #fff; border-bottom: 1px solid #e5e5ea;
+  display: flex; align-items: center; justify-content: space-between; padding: 0 16px;
+}
+.topbar-left { display: flex; align-items: center; gap: 8px; }
+.topbar-left .logo {
+  width: 28px; height: 28px; background: #6c5ce7; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-weight: 700; font-size: 14px;
+}
+.topbar-left .title { font-weight: 700; font-size: 15px; }
+.topbar-center { display: flex; align-items: center; gap: 4px; }
+.topbar-center .theme-btn {
+  background: #fff; border: 1.5px solid #6c5ce7; color: #6c5ce7;
+  padding: 6px 14px; border-radius: 8px; font-size: 13px; font-weight: 600;
+  cursor: pointer; font-family: inherit; transition: all 0.5s ease;
+}
+.topbar-center .tool-btn {
+  background: transparent; border: none; color: #888; font-size: 13px;
+  padding: 6px 10px; cursor: pointer; border-radius: 6px; font-family: inherit;
+}
+.topbar-center .tool-btn:hover { background: #f0f0f5; }
+.topbar-center .divider { width: 1px; height: 24px; background: #e5e5ea; margin: 0 4px; }
+.topbar-right { display: flex; align-items: center; gap: 8px; }
+.topbar-right .btn-play {
+  width: 32px; height: 32px; background: #f0f0f5; border: none;
+  border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px;
+}
+.topbar-right .btn-export {
+  background: #fff; border: 1px solid #ddd; padding: 6px 14px;
+  border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit;
+}
+.topbar-right .btn-codegen {
+  background: #1a1a2e; color: #fff; border: none; padding: 6px 14px;
+  border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;
+}
+
+/* ─── Main ─── */
+.main { display: flex; height: calc(100vh - 52px); }
+
+/* ─── Left Sidebar ─── */
+.sidebar-left {
+  width: 190px; background: #fff; border-right: 1px solid #e5e5ea;
+  display: flex; flex-direction: column; flex-shrink: 0;
+}
+.pages-header {
+  padding: 12px 14px; display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid #e5e5ea; font-size: 13px; font-weight: 600; color: #888;
+}
+.pages-header span:last-child { cursor: pointer; color: #aaa; font-size: 16px; }
+.tabs { display: flex; padding: 8px 10px 0; }
+.tabs .tab {
+  padding: 6px 10px; font-size: 12px; font-weight: 600; cursor: pointer;
+  color: #888; border: 1.5px solid transparent; border-radius: 8px; background: transparent; font-family: inherit;
+}
+.tabs .tab.active { color: #6c5ce7; border-color: #6c5ce7; background: #f8f7ff; }
+.search-box {
+  margin: 8px 10px; padding: 7px 10px; border: 1px solid #e5e5ea;
+  border-radius: 8px; font-size: 12px; color: #aaa; display: flex; align-items: center; gap: 6px;
+}
+.component-section { padding: 4px 10px; font-size: 10px; font-weight: 700; color: #aaa; letter-spacing: 0.5px; }
+.component-list { flex: 1; overflow-y: auto; padding: 0 6px; }
+.component-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 10px; font-size: 13px; color: #333;
+  border-left: 3px solid transparent; cursor: pointer; border-radius: 0 6px 6px 0; transition: all 0.15s;
+}
+.component-item:hover { background: #f8f7ff; border-left-color: #6c5ce7; }
+.component-item .count { font-size: 11px; color: #aaa; transition: all 0.2s; }
+.component-item.highlight { background: #ede8ff; border-left-color: #6c5ce7; animation: flashHL 0.5s ease; }
+@keyframes flashHL { 0%{background:#d4c8ff} 100%{background:#ede8ff} }
+@keyframes countPop { 0%{transform:scale(1)} 50%{transform:scale(1.4);color:#6c5ce7} 100%{transform:scale(1)} }
+.count-pop { animation: countPop 0.35s ease; }
+
+/* ─── Canvas ─── */
+.canvas-area { flex: 1; display: flex; flex-direction: column; background: #ebebf0; position: relative; overflow: hidden; }
+.canvas-wrapper { flex: 1; display: flex; align-items: center; justify-content: center; padding: 30px; }
+.phone-canvas {
+  width: 375px; height: 700px; background: #fff; border-radius: 24px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.1), 0 2px 8px rgba(0,0,0,0.05);
+  position: relative; overflow: hidden; display: flex; flex-direction: column;
+  transition: background 0.8s ease, box-shadow 0.8s ease;
+}
+.build-progress {
+  position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: #e5e5ea; z-index: 10; opacity: 0; transition: opacity 0.3s;
+}
+.build-progress.active { opacity: 1; }
+.build-progress .bar {
+  height: 100%; background: linear-gradient(90deg, #6c5ce7, #a78bfa);
+  width: 0%; transition: width 0.5s ease; border-radius: 0 2px 2px 0;
+}
+.canvas-content { flex: 1; padding: 40px 24px 24px; display: flex; flex-direction: column; }
+
+/* ─── Canvas Components ─── */
+.comp {
+  opacity: 0; transform: translateY(14px) scale(0.97);
+  transition: all 0.55s cubic-bezier(0.16, 1, 0.3, 1); position: relative;
+}
+.comp.show { opacity: 1; transform: translateY(0) scale(1); }
+
+/* remove animation */
+.comp.removing {
+  opacity: 0 !important; transform: translateY(-10px) scale(0.95) !important;
+  max-height: 0 !important; margin-bottom: 0 !important; padding: 0 !important;
+  overflow: hidden; transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.comp.removing * { transition: all 0.3s; }
+.comp.remove-glow::after {
+  content:''; position: absolute; inset: -4px; border-radius: 12px;
+  border: 2px solid #e74c3c; opacity: 0; animation: removeGlow 0.6s ease forwards; pointer-events: none;
+}
+@keyframes removeGlow { 0%{opacity:0.9} 100%{opacity:0;inset:-12px} }
+.comp-tag.removed { background: #fde8e8; color: #c0392b; text-decoration: line-through; }
+
+/* text change highlight */
+.text-changing { position: relative; }
+.text-changing::after {
+  content:''; position: absolute; inset: -2px -6px; border-radius: 6px;
+  background: rgba(245,166,35,0.12); border: 1.5px solid #f5a623;
+  animation: textChangeGlow 0.8s ease forwards; pointer-events: none;
+}
+@keyframes textChangeGlow { 0%{opacity:0} 20%{opacity:1} 100%{opacity:0} }
+
+.diff-item { padding: 6px 0; border-bottom: 1px solid #f0f0f0; font-size: 12px; }
+.diff-item:last-child { border-bottom: none; }
+.diff-item .diff-label { font-size: 10px; font-weight: 700; color: #888; margin-bottom: 3px; }
+.diff-before { color: #c0392b; text-decoration: line-through; background: #fde8e8; padding: 1px 4px; border-radius: 3px; font-size: 11px; }
+.diff-after { color: #27ae60; background: #eafaf1; padding: 1px 4px; border-radius: 3px; font-size: 11px; font-weight: 600; }
+.diff-arrow { color: #aaa; margin: 0 4px; font-size: 10px; }
+.diff-reason { color: #888; font-size: 10px; margin-top: 2px; font-style: italic; }
+
+/* theme transition */
+.phone-canvas.theme-spring { background: linear-gradient(180deg, #fdf6f0 0%, #fff5f5 30%, #ffffff 100%); }
+.c-logo .logo-icon { transition: background 0.8s ease, border-radius 0.8s ease; }
+.theme-spring .c-logo .logo-icon { background: linear-gradient(135deg, #f8a5c2, #f7d794); border-radius: 50%; }
+.c-title h2 { transition: color 0.6s ease; }
+.theme-spring .c-title h2 { color: #d63384; }
+.c-title p { transition: color 0.6s ease; }
+.theme-spring .c-title p { color: #c77dba; }
+.c-input input { transition: border-color 0.6s ease, background 0.6s ease; }
+.theme-spring .c-input input { border-color: #f0c0d0; background: #fff8fa; }
+.c-checkbox .right { transition: color 0.6s ease; }
+.theme-spring .c-checkbox .right { color: #e84393; }
+.c-button .btn { transition: background 0.8s ease, border-radius 0.4s ease; }
+.theme-spring .c-button .btn { background: linear-gradient(135deg, #e84393, #fd79a8); border-radius: 24px; }
+.c-signup a { transition: color 0.6s ease; }
+.theme-spring .c-signup a { color: #e84393; }
+.theme-btn.spring { border-color: #e84393 !important; color: #e84393 !important; background: #fff5f8 !important; }
+
+.color-swatches { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+.swatch { display: flex; align-items: center; gap: 4px; padding: 3px 8px; background: #f8f8f8; border-radius: 6px; font-size: 10px; }
+.swatch .dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; border: 1px solid rgba(0,0,0,0.08); }
+
+.comp.drop-glow::after {
+  content:''; position: absolute; inset: -4px; border-radius: 12px;
+  border: 2px solid #6c5ce7; opacity: 0; animation: glowPulse 0.8s ease forwards; pointer-events: none;
+}
+@keyframes glowPulse { 0%{opacity:0.8;inset:-4px} 100%{opacity:0;inset:-12px} }
+
+.c-logo { text-align: center; margin-bottom: 8px; }
+.c-logo .logo-icon {
+  width: 56px; height: 56px; background: linear-gradient(135deg, #6c5ce7, #a78bfa);
+  border-radius: 16px; margin: 0 auto 12px; display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 24px; font-weight: 700;
+}
+.c-title { text-align: center; margin-bottom: 28px; }
+.c-title h2 { font-size: 20px; font-weight: 700; color: #1a1a2e; margin-bottom: 4px; }
+.c-title p { font-size: 13px; color: #888; }
+.c-input { margin-bottom: 12px; }
+.c-input label { font-size: 12px; font-weight: 600; color: #555; margin-bottom: 5px; display: block; }
+.c-input input {
+  width: 100%; padding: 12px 14px; border: 1.5px solid #e0e0e5; border-radius: 10px;
+  font-size: 14px; color: #1a1a2e; background: #fafafa; outline: none; font-family: inherit;
+}
+.c-input input::placeholder { color: #bbb; }
+.c-checkbox { margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; }
+.c-checkbox .left { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #666; }
+.c-checkbox .left .box { width: 16px; height: 16px; border: 1.5px solid #ccc; border-radius: 4px; }
+.c-checkbox .right { font-size: 12px; color: #6c5ce7; font-weight: 600; }
+.c-button { margin-bottom: 16px; }
+.c-button .btn {
+  width: 100%; padding: 14px; background: #6c5ce7; color: #fff; border: none;
+  border-radius: 12px; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit;
+}
+.c-divider { margin-bottom: 16px; display: flex; align-items: center; gap: 12px; }
+.c-divider .line { flex: 1; height: 1px; background: #e5e5ea; }
+.c-divider .txt { font-size: 11px; color: #aaa; font-weight: 500; }
+.c-social { display: flex; gap: 12px; justify-content: center; margin-bottom: 20px; }
+.c-social .social-btn {
+  width: 48px; height: 48px; border-radius: 12px; border: 1.5px solid #e5e5ea;
+  display: flex; align-items: center; justify-content: center; font-weight: 700; cursor: pointer; background: #fff;
+}
+.c-signup { text-align: center; font-size: 12px; color: #888; }
+.c-signup a { color: #6c5ce7; font-weight: 600; text-decoration: none; }
+
+.zoom-controls {
+  position: absolute; bottom: 16px; right: 16px;
+  display: flex; align-items: center; gap: 4px;
+  background: #fff; border-radius: 10px; padding: 4px 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08); font-size: 12px; color: #555;
+}
+.zoom-controls button {
+  width: 28px; height: 28px; border: none; background: transparent;
+  cursor: pointer; border-radius: 6px; font-size: 16px; color: #555;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* ─── AI Chat Panel ─── */
+.ai-chat-panel {
+  width: 360px; background: #fff; border-left: 1px solid #e5e5ea;
+  display: flex; flex-direction: column; flex-shrink: 0;
+}
+.ai-chat-header {
+  padding: 14px 16px; border-bottom: 1px solid #e5e5ea; display: flex; align-items: center; gap: 10px;
+}
+.ai-chat-header .ai-icon {
+  width: 32px; height: 32px; background: linear-gradient(135deg, #6c5ce7, #a78bfa);
+  border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 15px;
+}
+.ai-chat-header .info .ai-title { font-size: 14px; font-weight: 700; }
+.ai-chat-header .info .ai-sub { font-size: 11px; color: #888; margin-top: 1px; }
+.ai-chat-messages {
+  flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px;
+}
+.chat-msg {
+  max-width: 92%; padding: 10px 14px; border-radius: 14px;
+  font-size: 13px; line-height: 1.55;
+  opacity: 0; transform: translateY(8px); transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.chat-msg.show { opacity: 1; transform: translateY(0); }
+.chat-msg.user { align-self: flex-end; background: #6c5ce7; color: #fff; border-bottom-right-radius: 4px; }
+.chat-msg.ai { align-self: flex-start; background: #f5f5f7; color: #333; border-bottom-left-radius: 4px; }
+
+.comp-tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: #ede8ff; color: #6c5ce7; padding: 2px 8px;
+  border-radius: 6px; font-size: 11px; font-weight: 600; margin: 1px 2px; white-space: nowrap;
+}
+.build-status {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; background: #f8f7ff; border-radius: 10px;
+  font-size: 12px; color: #6c5ce7; font-weight: 600; margin-top: 4px;
+}
+.build-status .spinner {
+  width: 14px; height: 14px; border: 2px solid #d4c8ff;
+  border-top-color: #6c5ce7; border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0;
+}
+@keyframes spin { to{transform:rotate(360deg)} }
+.build-status.done { color: #27ae60; background: #eafaf1; }
+
+.typing-dots {
+  display: flex; gap: 4px; padding: 10px 14px; align-self: flex-start;
+  background: #f5f5f7; border-radius: 14px; border-bottom-left-radius: 4px;
+}
+.typing-dots .d {
+  width: 6px; height: 6px; background: #aaa; border-radius: 50%; animation: bounce 1.2s ease infinite;
+}
+.typing-dots .d:nth-child(2) { animation-delay: 0.2s; }
+.typing-dots .d:nth-child(3) { animation-delay: 0.4s; }
+@keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-5px)} }
+
+.summary-table { width: 100%; margin-top: 8px; border-collapse: collapse; }
+.summary-table td { padding: 4px 0; font-size: 12px; border-bottom: 1px solid #eee; }
+.summary-table td:first-child { color: #888; }
+.summary-table td:last-child { text-align: right; font-weight: 600; color: #333; }
+
+.ai-chat-input {
+  padding: 12px 16px; border-top: 1px solid #e5e5ea; display: flex; align-items: center; gap: 8px;
+}
+.ai-chat-input input,
+.ai-chat-input textarea {
+  flex: 1; padding: 10px 14px; border: 1.5px solid #e5e5ea; border-radius: 12px;
+  font-size: 13px; outline: none; font-family: inherit; background: #fafafa; transition: border-color 0.2s;
+  resize: none; line-height: 1.5; min-height: 20px; max-height: 72px;
+}
+.ai-chat-input textarea:focus { border-color: #6c5ce7; }
+.ai-chat-input .send-btn {
+  width: 36px; height: 36px; background: #6c5ce7; border: none; border-radius: 10px;
+  color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: 18px; transition: all 0.15s;
+}
+.ai-chat-input .send-btn:hover { transform: scale(1.05); }
+.ai-chat-input .send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #ddd; border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="logo">T</div><span class="title">Design Studio</span>
+  </div>
+  <div class="topbar-center">
+    <button class="theme-btn" id="themeBtn">T-world Theme <span style="font-size:10px">▾</span></button>
+    <div class="divider"></div>
+    <button class="tool-btn">↩ Undo</button>
+    <button class="tool-btn" style="color:#ccc">↪ Redo</button>
+    <div class="divider"></div>
+    <button class="tool-btn">⊞ Grid</button>
+    <button class="tool-btn" style="color:#ccc">💾 Save</button>
+    <button class="tool-btn">🗑 Clear</button>
+    <button class="tool-btn">ⓘ</button>
+  </div>
+  <div class="topbar-right">
+    <button class="btn-play">▶</button>
+    <button class="btn-export">↓ Export</button>
+    <button class="btn-codegen">&lt;/&gt; Code Gen</button>
+  </div>
+</div>
+
+<div class="main">
+  <div class="sidebar-left">
+    <div class="pages-header"><span>› Pages</span><span>+</span></div>
+    <div class="tabs">
+      <button class="tab active">Component</button>
+      <button class="tab">Quick</button>
+      <button class="tab">Layers</button>
+    </div>
+    <div class="search-box"><span>🔍</span><span>컴포넌트 검색</span></div>
+    <div class="component-section">BASIC</div>
+    <div class="component-list">
+      <div class="component-item" data-name="버튼"><span>버튼</span><span class="count" id="cnt-button">1</span></div>
+      <div class="component-item" data-name="입력필드"><span>입력필드</span><span class="count" id="cnt-input">1</span></div>
+      <div class="component-item" data-name="라디오 선택"><span>라디오 선택</span><span class="count">1</span></div>
+      <div class="component-item" data-name="드롭다운"><span>드롭다운</span><span class="count">1</span></div>
+      <div class="component-item" data-name="인디케이터"><span>인디케이터</span><span class="count">1</span></div>
+      <div class="component-item" data-name="체크박스"><span>체크박스</span><span class="count" id="cnt-checkbox">1</span></div>
+      <div class="component-item" data-name="토글"><span>토글</span><span class="count">1</span></div>
+      <div class="component-item" data-name="뱃지"><span>뱃지</span><span class="count">1</span></div>
+      <div class="component-item" data-name="구분선"><span>구분선</span><span class="count" id="cnt-divider">1</span></div>
+      <div class="component-item" data-name="아이콘"><span>아이콘</span><span class="count">1</span></div>
+      <div class="component-item" data-name="이미지"><span>이미지</span><span class="count" id="cnt-image">2</span></div>
+      <div class="component-item" data-name="스피너"><span>스피너</span><span class="count">1</span></div>
+      <div class="component-item" data-name="탭"><span>탭</span><span class="count">1</span></div>
+      <div class="component-item" data-name="텍스트"><span>텍스트</span><span class="count" id="cnt-text">1</span></div>
+      <div class="component-section" style="margin-top:8px">COMPOSITE</div>
+      <div class="component-item" data-name="리스트"><span>리스트</span><span class="count">9</span></div>
+      <div class="component-item" data-name="카드"><span>카드</span><span class="count">7</span></div>
+    </div>
+  </div>
+
+  <div class="canvas-area">
+    <div class="canvas-wrapper">
+      <div class="phone-canvas" id="phoneCanvas">
+        <div class="build-progress" id="buildProgress"><div class="bar" id="progressBar"></div></div>
+        <div class="canvas-content">
+          <div class="comp c-logo" id="comp-logo"><div class="logo-icon">T</div></div>
+          <div class="comp c-title" id="comp-title"><h2>로그인</h2><p>T world 계정으로 로그인하세요</p></div>
+          <div class="comp c-input" id="comp-email"><label>아이디</label><input type="text" placeholder="이메일 또는 아이디 입력" readonly></div>
+          <div class="comp c-input" id="comp-pw"><label>비밀번호</label><input type="password" placeholder="비밀번호 입력" readonly></div>
+          <div class="comp c-checkbox" id="comp-check"><div class="left"><div class="box"></div><span>로그인 상태 유지</span></div><div class="right">비밀번호 찾기</div></div>
+          <div class="comp c-button" id="comp-btn"><button class="btn">로그인</button></div>
+          <div class="comp c-divider" id="comp-div"><div class="line"></div><span class="txt">또는</span><div class="line"></div></div>
+          <div class="comp c-social" id="comp-social">
+            <div class="social-btn" style="background:#fee500"><span style="color:#3c1e1e;font-size:16px">K</span></div>
+            <div class="social-btn" style="background:#03c75a"><span style="color:#fff;font-size:14px">N</span></div>
+            <div class="social-btn"><span style="font-size:16px">G</span></div>
+            <div class="social-btn" style="background:#000;border-color:#000"><span style="color:#fff;font-size:14px"></span></div>
+          </div>
+          <div class="comp c-signup" id="comp-signup">아직 계정이 없으신가요? <a href="#">회원가입</a></div>
+        </div>
+      </div>
+    </div>
+    <div class="zoom-controls">
+      <button>−</button><span>100%</span><button>+</button>
+      <span style="margin-left:4px;color:#888;font-size:11px">맞춤</span>
+    </div>
+  </div>
+
+  <div class="ai-chat-panel">
+    <div class="ai-chat-header">
+      <div class="ai-icon">✦</div>
+      <div class="info"><div class="ai-title">AI Screen Builder</div><div class="ai-sub">디자인 시스템 기반 화면 생성</div></div>
+    </div>
+    <div class="ai-chat-messages" id="chatMessages"></div>
+    <div class="ai-chat-input">
+      <textarea id="chatInput" rows="1" placeholder="화면을 설명해주세요..." readonly></textarea>
+      <button class="send-btn" id="sendBtn">↑</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const chat = document.getElementById('chatMessages');
+const inputEl = document.getElementById('chatInput');
+const sendBtn = document.getElementById('sendBtn');
+const bar = document.getElementById('progressBar');
+const prog = document.getElementById('buildProgress');
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const scroll = () => { chat.scrollTop = chat.scrollHeight; };
+
+function addMsg(type, html) {
+  return new Promise(resolve => {
+    const m = document.createElement('div');
+    m.className = `chat-msg ${type}`;
+    m.innerHTML = html;
+    chat.appendChild(m); scroll();
+    requestAnimationFrame(() => requestAnimationFrame(() => { m.classList.add('show'); resolve(m); }));
+  });
+}
+function showDots() {
+  const d = document.createElement('div');
+  d.className = 'typing-dots'; d.id = 'dots';
+  d.innerHTML = '<div class="d"></div><div class="d"></div><div class="d"></div>';
+  chat.appendChild(d); scroll();
+}
+function hideDots() { document.getElementById('dots')?.remove(); }
+function reveal(id) {
+  const el = document.getElementById(id);
+  el.classList.add('show','drop-glow');
+  setTimeout(() => el.classList.remove('drop-glow'), 900);
+}
+function hlSidebar(name) {
+  document.querySelectorAll('.component-item').forEach(i => {
+    if (i.dataset.name === name) { i.classList.add('highlight'); setTimeout(() => i.classList.remove('highlight'), 1400); }
+  });
+}
+function bump(id, val) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = val;
+  el.classList.remove('count-pop'); void el.offsetWidth; el.classList.add('count-pop');
+}
+function setBar(pct) { bar.style.width = pct + '%'; }
+async function typeInto(text, speed = 50) {
+  inputEl.value = '';
+  inputEl.style.height = 'auto';
+  for (let i = 0; i < text.length; i++) {
+    inputEl.value += text[i];
+    inputEl.style.height = 'auto';
+    inputEl.style.height = Math.min(inputEl.scrollHeight, 72) + 'px';
+    await sleep(speed);
+  }
+}
+async function changeText(el, selector, newText) {
+  const target = selector ? el.querySelector(selector) : el;
+  if (!target) return;
+  target.classList.add('text-changing');
+  await sleep(500);
+  target.textContent = newText;
+  await sleep(400);
+  target.classList.remove('text-changing');
+}
+
+const buildSteps = [
+  { id:'comp-logo',   sidebar:'이미지',   cntId:'cnt-image',    cntVal:3,  pct:12,  label:'이미지 (로고)' },
+  { id:'comp-title',  sidebar:'텍스트',   cntId:'cnt-text',     cntVal:2,  pct:24,  label:'텍스트 (타이틀)' },
+  { id:'comp-email',  sidebar:'입력필드', cntId:'cnt-input',    cntVal:2,  pct:36,  label:'입력필드 (아이디)' },
+  { id:'comp-pw',     sidebar:'입력필드', cntId:'cnt-input',    cntVal:3,  pct:48,  label:'입력필드 (비밀번호)' },
+  { id:'comp-check',  sidebar:'체크박스', cntId:'cnt-checkbox', cntVal:2,  pct:58,  label:'체크박스 (로그인 유지)' },
+  { id:'comp-btn',    sidebar:'버튼',     cntId:'cnt-button',   cntVal:2,  pct:70,  label:'버튼 (로그인)' },
+  { id:'comp-div',    sidebar:'구분선',   cntId:'cnt-divider',  cntVal:2,  pct:80,  label:'구분선' },
+  { id:'comp-social', sidebar:'버튼',     cntId:'cnt-button',   cntVal:6,  pct:92,  label:'버튼 (소셜 로그인 ×4)' },
+  { id:'comp-signup', sidebar:'텍스트',   cntId:'cnt-text',     cntVal:3,  pct:100, label:'텍스트 (회원가입)' },
+];
+
+// ═══════════════════════════════════════
+// SCENARIO DEFINITIONS
+// Each scenario: prefill (auto-types text) + run (executes after send click)
+// ═══════════════════════════════════════
+const scenarios = [
+  // ── 1: 로그인 화면 생성 ──
+  {
+    prefill: '로그인 화면 구현해줘',
+    userMsg: '로그인 화면 구현해줘',
+    run: async () => {
+      showDots(); await sleep(800); hideDots();
+      await addMsg('ai', '네, 디자인 시스템 컴포넌트로 로그인 화면을 생성합니다. 🎨');
+      await sleep(400);
+      await addMsg('ai', '<div class="build-status" id="buildStatus"><div class="spinner"></div><span>캔버스에 컴포넌트를 배치하는 중...</span></div>');
+      prog.classList.add('active');
+      await sleep(300);
+      for (let i = 0; i < buildSteps.length; i++) {
+        const s = buildSteps[i];
+        await sleep(450);
+        reveal(s.id); hlSidebar(s.sidebar); bump(s.cntId, s.cntVal); setBar(s.pct);
+        document.querySelector('#buildStatus span').textContent = `${s.label} 배치 완료 (${i+1}/${buildSteps.length})`;
+        scroll();
+      }
+      await sleep(400);
+      document.getElementById('buildStatus').classList.add('done');
+      document.getElementById('buildStatus').innerHTML = '<span>✅ 모든 컴포넌트 배치 완료</span>';
+      await sleep(500);
+      showDots(); await sleep(700); hideDots();
+      await addMsg('ai', `로그인 화면이 완성되었습니다!<br><br>
+        <table class="summary-table">
+          <tr><td>이미지</td><td><span class="comp-tag">로고 ×1</span></td></tr>
+          <tr><td>텍스트</td><td><span class="comp-tag">타이틀</span> <span class="comp-tag">회원가입</span></td></tr>
+          <tr><td>입력필드</td><td><span class="comp-tag">아이디</span> <span class="comp-tag">비밀번호</span></td></tr>
+          <tr><td>체크박스</td><td><span class="comp-tag">로그인 유지</span></td></tr>
+          <tr><td>버튼</td><td><span class="comp-tag">로그인</span> <span class="comp-tag">소셜 ×4</span></td></tr>
+          <tr><td>구분선</td><td><span class="comp-tag">×1</span></td></tr>
+        </table><br><span style="color:#6c5ce7;font-weight:600">Code Gen</span> 버튼으로 코드를 내보낼 수 있어요.`);
+    }
+  },
+
+  // ── 2: SNS 제거 ──
+  {
+    prefill: 'SNS 로그인 부분은 제거해줘',
+    userMsg: 'SNS 로그인 부분은 제거해줘',
+    run: async () => {
+      showDots(); await sleep(800); hideDots();
+      await addMsg('ai', 'SNS 로그인 관련 컴포넌트를 제거합니다.');
+      await sleep(400);
+      await addMsg('ai', '<div class="build-status" id="removeStatus"><div class="spinner"></div><span>컴포넌트를 제거하는 중...</span></div>');
+      await sleep(400);
+      const socialEl = document.getElementById('comp-social');
+      socialEl.classList.add('remove-glow');
+      document.querySelector('#removeStatus span').textContent = '버튼 (소셜 로그인 ×4) 제거 중...'; scroll();
+      await sleep(600);
+      socialEl.classList.remove('remove-glow'); socialEl.classList.add('removing');
+      hlSidebar('버튼'); bump('cnt-button', 2);
+      await sleep(500);
+      const divEl = document.getElementById('comp-div');
+      divEl.classList.add('remove-glow');
+      document.querySelector('#removeStatus span').textContent = '구분선 제거 중...'; scroll();
+      await sleep(600);
+      divEl.classList.remove('remove-glow'); divEl.classList.add('removing');
+      hlSidebar('구분선'); bump('cnt-divider', 1);
+      await sleep(500);
+      document.getElementById('removeStatus').classList.add('done');
+      document.getElementById('removeStatus').innerHTML = '<span>✅ 2개 컴포넌트 제거 완료</span>';
+      await sleep(500);
+      showDots(); await sleep(700); hideDots();
+      await addMsg('ai', `SNS 로그인 영역을 제거했습니다.<br><br>
+        <table class="summary-table">
+          <tr><td>제거됨</td><td><span class="comp-tag removed">소셜 버튼 ×4</span> <span class="comp-tag removed">구분선</span></td></tr>
+        </table><br><strong style="font-size:12px">현재 화면 구성:</strong>
+        <table class="summary-table" style="margin-top:4px">
+          <tr><td>이미지</td><td><span class="comp-tag">로고 ×1</span></td></tr>
+          <tr><td>텍스트</td><td><span class="comp-tag">타이틀</span> <span class="comp-tag">회원가입</span></td></tr>
+          <tr><td>입력필드</td><td><span class="comp-tag">아이디</span> <span class="comp-tag">비밀번호</span></td></tr>
+          <tr><td>체크박스</td><td><span class="comp-tag">로그인 유지</span></td></tr>
+          <tr><td>버튼</td><td><span class="comp-tag">로그인</span></td></tr>
+        </table>`);
+    }
+  },
+
+  // ── 3: 문구 검토 ──
+  {
+    prefill: '페이지 전체 문구 검토해줘',
+    userMsg: '페이지 전체 문구 검토해줘',
+    run: async () => {
+      showDots(); await sleep(800); hideDots();
+      await addMsg('ai', '고객언어연구소 및 학습된 패턴을 바탕으로 문구 검토를 시작합니다. 📝');
+      await sleep(400);
+      await addMsg('ai', '<div class="build-status" id="reviewStatus"><div class="spinner"></div><span>화면 문구를 분석하는 중...</span></div>');
+      await sleep(500);
+
+      document.querySelector('#reviewStatus span').textContent = '타이틀 문구 검토 중...';
+      const t = document.getElementById('comp-title');
+      t.classList.add('drop-glow'); await sleep(400); t.classList.remove('drop-glow');
+      await changeText(t, 'p', 'T world에 오신 것을 환영합니다'); await sleep(300);
+
+      document.querySelector('#reviewStatus span').textContent = '입력필드 문구 검토 중...';
+      const e = document.getElementById('comp-email');
+      e.classList.add('drop-glow'); await sleep(400); e.classList.remove('drop-glow');
+      await changeText(e, 'label', '아이디 (이메일)');
+      e.querySelector('input').placeholder = '예: hong@email.com'; await sleep(300);
+
+      document.querySelector('#reviewStatus span').textContent = '체크박스 문구 검토 중...';
+      const c = document.getElementById('comp-check');
+      c.classList.add('drop-glow'); await sleep(400); c.classList.remove('drop-glow');
+      await changeText(c, '.left span', '자동 로그인'); await sleep(300);
+
+      document.querySelector('#reviewStatus span').textContent = '회원가입 문구 검토 중...';
+      const s = document.getElementById('comp-signup');
+      s.classList.add('drop-glow'); await sleep(400); s.classList.remove('drop-glow');
+      s.innerHTML = '처음이신가요? <a href="#" style="color:#6c5ce7;font-weight:600;text-decoration:none">3초 만에 가입하기</a>';
+      await sleep(300);
+
+      document.getElementById('reviewStatus').classList.add('done');
+      document.getElementById('reviewStatus').innerHTML = '<span>✅ 문구 검토 완료 — 4건 수정</span>';
+      await sleep(500);
+      showDots(); await sleep(800); hideDots();
+      await addMsg('ai', `문구 검토가 완료되었습니다. 변경 내역:<br><br>
+        <div class="diff-item"><div class="diff-label">타이틀 부제</div><span class="diff-before">T world 계정으로 로그인하세요</span><span class="diff-arrow">→</span><span class="diff-after">T world에 오신 것을 환영합니다</span><div class="diff-reason">• 지시형 → 환영형으로 변경하여 친근감 향상</div></div>
+        <div class="diff-item"><div class="diff-label">아이디 라벨 + 플레이스홀더</div><span class="diff-before">아이디</span><span class="diff-arrow">→</span><span class="diff-after">아이디 (이메일)</span><div class="diff-reason">• 입력 형식을 명시하여 사용자 혼란 감소</div></div>
+        <div class="diff-item"><div class="diff-label">체크박스</div><span class="diff-before">로그인 상태 유지</span><span class="diff-arrow">→</span><span class="diff-after">자동 로그인</span><div class="diff-reason">• 간결한 표현으로 가독성 개선</div></div>
+        <div class="diff-item"><div class="diff-label">하단 회원가입</div><span class="diff-before">아직 계정이 없으신가요? 회원가입</span><span class="diff-arrow">→</span><span class="diff-after">처음이신가요? 3초 만에 가입하기</span><div class="diff-reason">• 행동 유도 문구(CTA) 강화, 가입 허들 낮춤</div></div>`);
+    }
+  },
+
+  // ── 4: 봄 테마 ──
+  {
+    prefill: '신규 테마를 생성해줘, 봄을 맞이하여 화사하고 따뜻한 벚꽃 느낌의 테마였으면 좋겠어',
+    userMsg: '신규 테마를 생성해줘, 봄을 맞이하여 화사하고 따뜻한 벚꽃 느낌의 테마였으면 좋겠어 🌸',
+    run: async () => {
+      showDots(); await sleep(800); hideDots();
+      await addMsg('ai', '브랜드 디자인 가이드를 위배하지 않는 선에서 신규 테마를 생성 및 적용하겠습니다. 🌸');
+      await sleep(400);
+      await addMsg('ai', '<div class="build-status" id="themeStatus"><div class="spinner"></div><span>컬러 팔레트를 생성하는 중...</span></div>');
+      await sleep(600);
+      document.querySelector('#themeStatus span').textContent = '봄 시즌 팔레트 생성 중...';
+      await sleep(700);
+      document.querySelector('#themeStatus span').textContent = '캔버스에 테마를 적용하는 중...';
+      await sleep(500);
+      document.getElementById('phoneCanvas').classList.add('theme-spring');
+      await sleep(400);
+      const tb = document.getElementById('themeBtn');
+      tb.classList.add('spring');
+      tb.innerHTML = 'Spring Blossom <span style="font-size:10px">▾</span>';
+      await sleep(500);
+      document.querySelector('#themeStatus span').textContent = '컴포넌트 스타일 적용 중...';
+      await sleep(800);
+      document.getElementById('themeStatus').classList.add('done');
+      document.getElementById('themeStatus').innerHTML = '<span>✅ Spring Blossom 테마 적용 완료</span>';
+      await sleep(500);
+      showDots(); await sleep(800); hideDots();
+      await addMsg('ai', `<strong>Spring Blossom</strong> 테마가 적용되었습니다! 🌸<br><br>
+        <strong style="font-size:11px">적용된 컬러 팔레트:</strong>
+        <div class="color-swatches">
+          <div class="swatch"><div class="dot" style="background:linear-gradient(135deg,#f8a5c2,#f7d794)"></div> Primary</div>
+          <div class="swatch"><div class="dot" style="background:#e84393"></div> Accent</div>
+          <div class="swatch"><div class="dot" style="background:#fdf6f0"></div> Surface</div>
+          <div class="swatch"><div class="dot" style="background:#fff5f5"></div> Background</div>
+          <div class="swatch"><div class="dot" style="background:#d63384"></div> Text</div>
+          <div class="swatch"><div class="dot" style="background:#f0c0d0"></div> Border</div>
+        </div><br>
+        <strong style="font-size:11px">변경 사항:</strong><br>
+        <table class="summary-table" style="margin-top:4px">
+          <tr><td>배경</td><td>화이트 → 웜 그라디언트</td></tr>
+          <tr><td>로고</td><td>퍼플 → 벚꽃 그라디언트 + 원형</td></tr>
+          <tr><td>버튼</td><td>퍼플 → 핑크 그라디언트 + 라운드</td></tr>
+          <tr><td>인풋</td><td>그레이 → 소프트 핑크 보더</td></tr>
+          <tr><td>타이포</td><td>다크 → 로즈 계열 톤</td></tr>
+        </table><br>
+        <span style="font-size:11px;color:#888">브랜드 가이드의 대비 비율(4.5:1)과 가독성 기준을 충족합니다.</span>`);
+    }
+  },
+];
+
+// ═══════════════════════════════
+// CONTROLLER — send button drives steps
+// ═══════════════════════════════
+let currentScenario = 0;
+let isRunning = false;
+let waitingForClick = false;
+
+// Prefill the input with auto-typing, then wait for send click
+async function prefillNext() {
+  if (currentScenario >= scenarios.length) {
+    sendBtn.disabled = true;
+    return;
+  }
+  const sc = scenarios[currentScenario];
+  await sleep(600);
+  await typeInto(sc.prefill);
+  waitingForClick = true;
+  sendBtn.disabled = false;
+}
+
+// When send button is clicked
+async function onSend() {
+  if (!waitingForClick || isRunning) return;
+  waitingForClick = false;
+  isRunning = true;
+  sendBtn.disabled = true;
+
+  const sc = scenarios[currentScenario];
+
+  // Show user message (clear input like a real chat)
+  inputEl.value = '';
+  inputEl.style.height = 'auto';
+  await addMsg('user', sc.userMsg);
+  await sleep(300);
+
+  // Run the scenario
+  await sc.run();
+
+  isRunning = false;
+  currentScenario++;
+
+  // Prefill next scenario
+  await prefillNext();
+}
+
+sendBtn.addEventListener('click', onSend);
+
+// Also allow Enter key
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && waitingForClick && !isRunning) {
+    e.preventDefault();
+    onSend();
+  }
+});
+
+// Start: prefill first scenario
+sendBtn.disabled = true;
+prefillNext();
+</script>
+</body>
+</html>
