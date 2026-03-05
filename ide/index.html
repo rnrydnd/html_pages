@@ -692,8 +692,8 @@ const apiIntegratedLines = [
 const scenarios = [
   // ── 1: 퍼블리싱 요청 ──
   {
-    prefill: '디자인스튜디오에 작성된 페이지 ID Login-0001 페이지를 퍼블리싱해줘',
-    userMsg: '디자인스튜디오에 작성된 페이지 ID <strong>Login-0001</strong> 페이지를 퍼블리싱해줘',
+    prefill: '디자인스튜디오에 작성된 페이지 ID Login-0001 페이지 코드생성 진행',
+    userMsg: '디자인스튜디오에 작성된 페이지 ID <strong>Login-0001</strong> 페이지 코드생성 진행',
     run: async () => {
       showDots(); await sleep(1000); hideDots();
       await addMsg('ai', `Design Studio에서 <span class="comp-tag">Login-0001</span> 페이지를 조회합니다.<br><br>
@@ -710,10 +710,10 @@ const scenarios = [
       clearCode();
       await typeCode(publishedLines, 55);
       document.getElementById('status1').classList.add('done');
-      document.getElementById('status1').innerHTML = '<span>✅ 퍼블리싱 코드 생성 완료 — 55 lines</span>';
+      document.getElementById('status1').innerHTML = '<span>✅ 코드 생성 완료 — 55 lines</span>';
       await sleep(500);
       showDots(); await sleep(700); hideDots();
-      await addMsg('ai', '<span class="comp-tag">Login-0001</span> 페이지의 퍼블리싱이 완료되었습니다. 디자인 시스템 컴포넌트를 활용한 마크업과 스타일이 적용되어 있습니다.');
+      await addMsg('ai', '<span class="comp-tag">Login-0001</span> 페이지의 코드생성이 완료되었습니다. 디자인 시스템 컴포넌트를 활용한 마크업과 스타일이 적용되어 있습니다.');
       await sleep(800);
       // AI proactively asks about OASS
       showDots(); await sleep(800); hideDots();
