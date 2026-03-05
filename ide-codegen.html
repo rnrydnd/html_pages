@@ -717,7 +717,7 @@ const scenarios = [
       await sleep(800);
       // AI proactively asks about OASS
       showDots(); await sleep(800); hideDots();
-      await addMsg('ai', '💡 로그인에 필요한 API들을 <strong>OASS</strong>에서 검색하여 적용해드릴까요?');
+      await addMsg('ai', '💡 로그인에 필요한 API들을 <strong>OASS</strong>에서 검색해드릴까요?');
     }
   },
 
@@ -732,14 +732,14 @@ const scenarios = [
           <div class="api-item"><span class="method post">POST</span><div><div class="path">/auth/login</div><div class="desc">사용자 인증 및 JWT 토큰 발급</div></div></div>
           <div class="api-item"><span class="method post">POST</span><div><div class="path">/auth/token-refresh</div><div class="desc">리프레시 토큰으로 액세스 토큰 갱신</div></div></div>
           <div class="api-item"><span class="method get">GET</span><div><div class="path">/user/validate?userId={id}</div><div class="desc">사용자 계정 존재 여부 확인</div></div></div>
-        </div><br>API 호출 로직을 적용하겠습니다.`);
+        </div><br>API 호출을 위한 샘플코드를 작성해드리겠습니다.`);
       await sleep(600);
-      await addMsg('ai', '<div class="build-status" id="status2"><div class="spinner"></div><span>비즈니스 로직 및 데이터 바인딩 적용 중...</span></div>');
+      await addMsg('ai', '<div class="build-status" id="status2"><div class="spinner"></div><span>API 샘플코드 적용 중...</span></div>');
       await sleep(500);
       clearCode();
       await typeCode(apiIntegratedLines, 45);
       document.getElementById('status2').classList.add('done');
-      document.getElementById('status2').innerHTML = '<span>✅ API 연동 완료 — 97 lines</span>';
+      document.getElementById('status2').innerHTML = '<span>✅ API 샘플코드 작성 완료 — 97 lines</span><br><br><span>작성된 샘플 코드를 참고하여, 비즈니스 로직을 구현하세요.</span>';
       await sleep(500);
       showDots(); await sleep(800); hideDots();
       await addMsg('ai', `모든 작업이 완료되었습니다! 🎉<br><br>
