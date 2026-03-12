@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Design Studio — 멀티 캔버스 · 프레임 배포 관리</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800&display=swap');
+  :root{
+    --bg0:#0b0d12;--bg1:#12141a;--bg2:#191c24;--bg3:#21242e;--bg4:#292d3a;--bg5:#323748;
+    --border:#272b38;--border-l:#343949;
+    --tx1:#e2e5ed;--tx2:#8b91a6;--tx3:#555b70;
+    --ac:#7b8aff;--ac-b:#98a5ff;--ac-d:rgba(123,138,255,.12);
+    --gn:#3ed98e;--gn-d:rgba(62,217,142,.11);
+    --yl:#edc644;--yl-d:rgba(237,198,68,.11);
+    --rd:#ef6b6b;--rd-d:rgba(239,107,107,.11);
+    --or:#e8944a;--or-d:rgba(232,148,74,.11);--or-b:rgba(232,148,74,.28);
+    --cy:#45c8d8;--cy-d:rgba(69,200,216,.11);
+    --r-sm:5px;--r-md:8px;--r-lg:12px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg0);color:var(--tx1);height:100vh;overflow:hidden;display:flex;flex-direction:column;font-size:13px}
+  .top{height:44px;background:var(--bg1);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 14px;gap:10px;flex-shrink:0;z-index:100}
+  .top-logo{font-weight:700;font-size:13px;color:var(--ac);display:flex;align-items:center;gap:5px}
+  .top-logo svg{width:16px;height:16px}
+  .top-sep{width:1px;height:16px;background:var(--border)}
+  .top-proj{font-size:13px;font-weight:600}
+  .top-sp{flex:1}
+  .top-avatars{display:flex}
+  .top-av{width:24px;height:24px;border-radius:50%;border:2px solid var(--bg1);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;margin-left:-4px}
+  .top-av:first-child{margin-left:0}
+  .main{display:flex;flex:1;overflow:hidden}
+
+  /* Left */
+  .p-left{width:240px;background:var(--bg1);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
+  .sec-hdr{padding:10px 12px 6px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--tx3);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+  .sec-hdr button{background:none;border:none;color:var(--tx3);cursor:pointer;font-size:14px;width:18px;height:18px;border-radius:3px;display:flex;align-items:center;justify-content:center}
+  .sec-hdr button:hover{background:var(--bg3);color:var(--tx2)}
+  .cv-section{flex-shrink:0;max-height:40%;display:flex;flex-direction:column;border-bottom:1px solid var(--border)}
+  .cv-list{flex:1;overflow-y:auto;padding:2px 5px}
+  .cv-item{padding:6px 9px;border-radius:var(--r-sm);cursor:pointer;display:flex;align-items:center;gap:8px;margin-bottom:1px}
+  .cv-item:hover{background:var(--bg3)}.cv-item.act{background:var(--ac-d)}
+  .cv-ico{width:22px;height:16px;border-radius:2px;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;gap:1px}
+  .cv-ico-r{width:4px;height:6px;border-radius:1px;border:1px solid var(--tx3);opacity:.45}
+  .cv-info{flex:1;min-width:0}.cv-nm{font-size:11px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cv-mt{font-size:9px;color:var(--tx3);margin-top:1px}
+  .ly-section{flex:1;display:flex;flex-direction:column;overflow:hidden}
+  .ly-scroll{flex:1;overflow-y:auto;padding:2px 0}
+  .ly-f{margin:0 5px 1px}
+  .ly-fh{padding:5px 8px;display:flex;align-items:center;gap:6px;cursor:pointer;border-radius:var(--r-sm);transition:background .1s}
+  .ly-fh:hover{background:var(--bg3)}.ly-fh.act{background:var(--ac-d)}
+  .ly-tog{width:11px;height:11px;color:var(--tx3);transition:transform .15s;flex-shrink:0}.ly-tog.open{transform:rotate(90deg)}
+  .ly-fn{flex:1;font-size:11px;font-weight:500;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ly-fb{display:flex;gap:3px;align-items:center;flex-shrink:0}
+  .b{display:inline-flex;align-items:center;gap:2px;padding:1px 4px;border-radius:3px;font-size:8px;font-weight:700;letter-spacing:.2px;line-height:1.6}
+  .b-live{background:var(--gn-d);color:var(--gn)}.b-draft{background:var(--ac-d);color:var(--ac)}.b-pub{background:var(--yl-d);color:var(--yl)}.b-chg{background:var(--or-d);color:var(--or);border:1px solid var(--or-b)}
+  .b .bd{width:3px;height:3px;border-radius:50%;background:currentColor}
+  .ly-ch{padding-left:14px;display:none}.ly-ch.open{display:block}
+  .ly-c{padding:3px 8px 3px 10px;font-size:10px;color:var(--tx2);display:flex;align-items:center;gap:5px;cursor:pointer;border-radius:3px;margin:0 5px 1px 0;position:relative}
+  .ly-c::before{content:'';position:absolute;left:0;top:0;bottom:0;width:1px;background:var(--border)}.ly-c:hover{background:var(--bg3)}
+  .ly-ct{font-size:8px;color:var(--tx3);font-family:'SF Mono',monospace}
+
+  /* Canvas */
+  .canvas{flex:1;background:var(--bg0);position:relative;overflow:hidden}
+  .canvas-grid{position:absolute;inset:0;background-image:radial-gradient(circle,rgba(39,43,56,.5) 1px,transparent 1px);background-size:20px 20px}
+  .canvas-vp{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:36px}
+  .cf{position:relative;cursor:pointer;transition:transform .18s}.cf:hover{transform:translateY(-2px)}
+  .cf.sel .cf-brd{border-color:var(--ac);box-shadow:0 0 0 3px var(--ac-d)}
+  .cf-lbl{position:absolute;top:-28px;left:0;right:0;display:flex;align-items:center;gap:4px;font-size:10px;font-weight:600;color:var(--tx2);white-space:nowrap}
+  .cf-lbl-badges{display:flex;gap:3px;align-items:center}
+  .cf-chg{width:6px;height:6px;border-radius:50%;background:var(--or);box-shadow:0 0 5px var(--or);animation:pls 2s infinite}
+  @keyframes pls{0%,100%{opacity:1}50%{opacity:.4}}
+  .cf-brd{width:240px;min-height:340px;background:var(--bg1);border-radius:var(--r-lg);border:1.5px solid var(--border);box-shadow:0 10px 36px rgba(0,0,0,.35);display:flex;flex-direction:column;overflow:hidden}
+  .cf-hdr{padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-size:11px;font-weight:600}
+  .cf-body{flex:1;padding:12px;display:flex;flex-direction:column;gap:7px}
+  .cf-blk{background:var(--bg3);border-radius:var(--r-sm);padding:9px 10px;border:1px solid var(--border)}
+  .cf-blk-l{font-size:8px;font-weight:600;color:var(--tx3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px}
+  .cf-ph{height:7px;background:var(--bg4);border-radius:2px;margin-bottom:3px}.cf-ph:last-child{width:55%;margin-bottom:0}
+  .cc{position:absolute;z-index:20;pointer-events:none;transition:all 2s ease}
+  .cc svg{width:13px;height:13px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.5))}
+  .cc-l{margin-left:11px;margin-top:-1px;font-size:9px;font-weight:600;padding:1px 5px;border-radius:3px;white-space:nowrap}
+
+  /* Right */
+  .p-right{width:340px;background:var(--bg1);border-left:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
+  .p-right-hdr{padding:10px 14px 8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--tx3);border-bottom:1px solid var(--border);flex-shrink:0}
+  .p-scroll{flex:1;overflow-y:auto}
+  .env-bar{margin:12px 14px;display:flex;gap:6px}
+  .env-card{flex:1;padding:9px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-md);text-align:center}
+  .env-card-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;display:flex;align-items:center;justify-content:center;gap:4px}
+  .env-card-ver{font-size:13px;font-weight:700;margin-bottom:2px}
+  .env-card-prev{font-size:8px;color:var(--tx3)}
+  .env-dot{width:5px;height:5px;border-radius:50%;display:inline-block}
+  .env-changed{margin:0 14px 10px;padding:7px 10px;background:var(--or-d);border:1px solid var(--or-b);border-radius:var(--r-sm);font-size:10px;color:var(--or);display:flex;align-items:center;gap:5px}
+
+  /* Timeline */
+  .tl{padding:0 14px 14px}
+  .tl-item{display:flex;gap:10px;position:relative}
+  .tl-trk{display:flex;flex-direction:column;align-items:center;width:14px;flex-shrink:0;padding-top:3px}
+  .tl-d{width:10px;height:10px;border-radius:50%;border:2px solid var(--border);background:var(--bg1);z-index:2;flex-shrink:0}
+  .tl-d.ver{width:11px;height:11px;border-color:var(--ac);background:var(--ac);box-shadow:0 0 0 3px var(--ac-d)}
+  .tl-d.dep-gn{border-color:var(--gn);background:var(--gn);box-shadow:0 0 0 3px var(--gn-d)}
+  .tl-d.dep-cy{border-color:var(--cy);background:var(--cy);box-shadow:0 0 0 3px var(--cy-d)}
+  .tl-d.dep-yl{border-color:var(--yl);background:var(--yl);box-shadow:0 0 0 3px var(--yl-d)}
+  .tl-d.draft-d{border-color:var(--or);background:transparent;border-style:dashed}
+  .tl-d.cp-d{width:7px;height:7px;border-color:var(--tx3);background:var(--bg4);margin:1px 0}
+  .tl-ln{flex:1;width:1.5px;background:var(--border);min-height:10px}
+  .tl-body{flex:1;padding-bottom:14px;min-width:0}
+  .tl-hdr{display:flex;align-items:flex-start;justify-content:space-between;gap:4px}
+  .tl-title{font-size:11px;font-weight:600;line-height:1.3}
+  .tl-tags{display:flex;gap:3px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end}
+  .tl-tag{font-size:8px;font-weight:700;padding:1px 5px;border-radius:3px;display:flex;align-items:center;gap:2px;white-space:nowrap}
+  .tl-tag.live{background:var(--gn-d);color:var(--gn)}.tl-tag.stg{background:var(--cy-d);color:var(--cy)}.tl-tag.dev{background:var(--yl-d);color:var(--yl)}
+  .tl-desc{font-size:10px;color:var(--tx2);margin-top:2px;line-height:1.5}
+  .tl-time{font-size:9px;color:var(--tx3);margin-top:2px;display:flex;align-items:center;gap:4px}
+  .tl-au{display:inline-flex;align-items:center;gap:3px}.tl-au-d{width:4px;height:4px;border-radius:50%}
+  .tl-dep-log{margin-top:4px;padding:4px 8px;background:var(--bg3);border-radius:4px;font-size:9px;color:var(--tx3);display:flex;flex-direction:column;gap:2px}
+  .tl-dep-entry{display:flex;align-items:center;gap:4px}.tl-dep-entry .dep-env{font-weight:600}
+  .tl-acts{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}
+  .tl-btn{padding:3px 9px;border-radius:var(--r-sm);border:1px solid var(--border);background:var(--bg3);color:var(--tx2);font-size:9px;font-weight:500;cursor:pointer;transition:all .1s;display:flex;align-items:center;gap:3px;position:relative}
+  .tl-btn:hover{background:var(--bg5);color:var(--tx1);border-color:var(--border-l)}
+  .tl-btn.pri{background:var(--ac);border-color:var(--ac);color:#fff}.tl-btn.pri:hover{background:#6a79e6}
+  .tl-btn.gn{background:var(--gn);border-color:var(--gn);color:#0b0d12;font-weight:600}.tl-btn.gn:hover{background:#35c57e}
+  .tl-btn.disabled{opacity:.35;cursor:not-allowed;pointer-events:none}
+  .tl-btn-wrap{position:relative;display:inline-flex}
+  .tl-btn-wrap:hover .tip{display:block}
+  .tip{display:none;position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--bg5);border:1px solid var(--border-l);border-radius:var(--r-sm);padding:5px 9px;font-size:9px;color:var(--tx2);white-space:nowrap;z-index:50;box-shadow:0 4px 12px rgba(0,0,0,.3)}
+  .tip::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:4px solid transparent;border-top-color:var(--border-l)}
+
+  /* Checkpoint toggle/list */
+  .cp-tog{font-size:9px;color:var(--tx3);cursor:pointer;display:flex;align-items:center;gap:4px;padding:2px 0;margin-left:24px}
+  .cp-tog:hover{color:var(--tx2)}
+  .cp-tog svg{width:9px;height:9px;transition:transform .15s}.cp-tog.exp svg{transform:rotate(90deg)}
+  .cp-list{display:none}.cp-list.show{display:block}
+  .cp-item{display:flex;gap:10px;align-items:flex-start}
+  .cp-body{padding:2px 0 5px;font-size:9px;color:var(--tx3);display:flex;align-items:center;gap:0;width:100%;flex-wrap:wrap}
+  .cp-seq{color:var(--tx3);font-weight:600;font-family:'SF Mono',monospace;font-size:9px;flex-shrink:0;min-width:32px}
+  .cp-name-wrap{position:relative;flex:1;min-width:0}
+  .cp-name-wrap:hover .tip{display:block}
+  .cp-name{color:var(--tx2);font-weight:500;cursor:default;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+  .cp-meta{display:flex;align-items:center;gap:4px;flex-shrink:0;margin-left:auto;padding-left:8px}
+  .cp-acts{display:flex;gap:3px;width:100%;padding:3px 0 2px 32px}
+
+  /* Bottom bar */
+  .bot-bar{padding:10px 14px;border-top:1px solid var(--border);background:var(--bg1);display:flex;gap:7px}
+  .bot-btn{padding:8px;border:none;border-radius:var(--r-md);font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;transition:all .1s}
+  .bot-save{flex:1;background:var(--bg3);color:var(--tx2);border:1px solid var(--border)}
+  .bot-save:hover{background:var(--bg5);color:var(--tx1)}
+  .bot-save.disabled{opacity:.35;cursor:not-allowed;background:var(--bg3);color:var(--tx3)}
+  .bot-save.disabled:hover{background:var(--bg3)}
+  .bot-pub{flex:2;background:var(--ac);color:#fff}.bot-pub:hover{background:#6a79e6}
+  .bot-pub.disabled{opacity:.35;cursor:not-allowed;background:var(--bg4);color:var(--tx3)}
+  .bot-pub.disabled:hover{background:var(--bg4)}
+  .bot-btn svg{width:13px;height:13px}
+  .bot-btn-wrap{position:relative;display:inline-flex;flex:2}
+  .bot-btn-wrap .bot-pub{width:100%}
+  .bot-btn-wrap:hover .tip{display:block}
+
+  /* Modals */
+  .mo{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;align-items:center;justify-content:center;backdrop-filter:blur(3px)}
+  .mo.show{display:flex}
+  .mo-box{background:var(--bg1);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:0 20px 60px rgba(0,0,0,.5)}
+  .mo-sm{width:420px}.mo-lg{width:860px;max-height:85vh;display:flex;flex-direction:column}
+  .mo-hdr{padding:16px 20px 12px;border-bottom:1px solid var(--border)}
+  .mo-hdr h3{font-size:14px;font-weight:700}.mo-hdr p{font-size:10px;color:var(--tx2);margin-top:2px}
+  .mo-body{padding:16px 20px;overflow-y:auto}
+  .mo-fld{margin-bottom:12px}
+  .mo-lbl{font-size:10px;font-weight:500;color:var(--tx2);margin-bottom:4px;display:block}
+  .mo-inp{width:100%;padding:7px 9px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--tx1);font-size:11px;font-family:inherit;outline:none}
+  .mo-inp:focus{border-color:var(--ac)}
+  textarea.mo-inp{min-height:50px;resize:vertical}
+  .mo-ft{padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:5px}
+  .mo-btn{padding:6px 16px;border-radius:var(--r-sm);font-size:11px;font-weight:500;cursor:pointer;border:1px solid var(--border);transition:all .1s}
+  .mo-btn.cancel{background:var(--bg3);color:var(--tx2)}.mo-btn.cancel:hover{background:var(--bg5)}
+  .mo-btn.ok{background:var(--ac);border-color:var(--ac);color:#fff}.mo-btn.ok:hover{background:#6a79e6}
+  .mo-btn.ok-gn{background:var(--gn);border-color:var(--gn);color:#0b0d12;font-weight:600}
+  .ver-disp{display:flex;align-items:center;gap:10px}
+  .ver-num{font-size:20px;font-weight:800;color:var(--ac);letter-spacing:-.5px}.ver-num.major{color:var(--or)}
+  .ver-major{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--tx2);cursor:pointer;user-select:none}
+  .ver-major input{accent-color:var(--ac);cursor:pointer}
+  .restore-info{background:var(--ac-d);border:1px solid rgba(123,138,255,.2);border-radius:var(--r-md);padding:9px 12px;font-size:10px;color:var(--ac-b);line-height:1.5;display:flex;gap:6px;align-items:flex-start}
+  .dep-env-sel{display:flex;gap:6px;margin-bottom:12px}
+  .dep-env-opt{flex:1;padding:10px;border:1.5px solid var(--border);border-radius:var(--r-md);cursor:pointer;text-align:center;transition:all .12s}
+  .dep-env-opt:hover{border-color:var(--border-l);background:var(--bg3)}
+  .dep-env-opt.sel-gn{border-color:var(--gn);background:var(--gn-d)}.dep-env-opt.sel-cy{border-color:var(--cy);background:var(--cy-d)}.dep-env-opt.sel-yl{border-color:var(--yl);background:var(--yl-d)}
+  .dep-env-name{font-size:12px;font-weight:600;margin-bottom:2px}.dep-env-cur{font-size:9px;color:var(--tx3)}
+  .dep-warn{display:none;background:var(--bg3);border:1px solid var(--border-l);border-radius:var(--r-md);padding:10px 12px;font-size:10px;color:var(--tx2);line-height:1.6;gap:7px;align-items:flex-start}
+  .dep-change{display:flex;align-items:center;gap:6px;margin-top:4px}
+  .dep-ver-old{padding:2px 6px;background:var(--bg4);border-radius:3px;font-weight:600;font-size:10px}
+  .dep-ver-new{padding:2px 6px;background:var(--gn-d);color:var(--gn);border-radius:3px;font-weight:600;font-size:10px}
+  .diff-content{display:flex;gap:16px;padding:0 20px 16px;flex:1;overflow:hidden}
+  .diff-side{flex:1;display:flex;flex-direction:column;min-width:0}
+  .diff-side-hdr{font-size:10px;font-weight:600;color:var(--tx2);margin-bottom:8px;display:flex;align-items:center;gap:5px}
+  .diff-preview{flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden;display:flex;flex-direction:column}
+  .diff-preview-hdr{padding:8px 12px;background:var(--bg3);border-bottom:1px solid var(--border);font-size:10px;font-weight:600;display:flex;align-items:center;justify-content:space-between}
+  .diff-preview-body{flex:1;padding:10px;display:flex;flex-direction:column;gap:6px;overflow-y:auto}
+  .diff-block{padding:8px;border-radius:var(--r-sm);border:1px solid var(--border)}
+  .diff-block.same{background:var(--bg3);opacity:.6}.diff-block.added{background:var(--gn-d);border-color:rgba(62,217,142,.2)}.diff-block.removed{background:var(--rd-d);border-color:rgba(239,107,107,.2)}.diff-block.changed{background:var(--yl-d);border-color:rgba(237,198,68,.2)}
+  .diff-block-label{font-size:8px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px;display:flex;align-items:center;gap:4px}
+  .diff-block .cf-ph{height:5px;margin-bottom:2px}
+  .diff-arrow{display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--tx3);font-size:18px;padding-top:28px}
+  /* Diff selector */
+  .dsel-ver{padding:6px 0;border-bottom:1px solid var(--border)}
+  .dsel-ver:last-child{border-bottom:none}
+  .dsel-ver-hdr{font-size:11px;font-weight:600;color:var(--tx2);padding:4px 0;display:flex;align-items:center;gap:6px}
+  .dsel-ver-hdr .dsel-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .dsel-cp{display:flex;align-items:center;gap:8px;padding:5px 8px;margin:2px 0 2px 14px;border-radius:var(--r-sm);cursor:pointer;transition:background .1s;font-size:10px;color:var(--tx3)}
+  .dsel-cp:hover{background:var(--ac-d);color:var(--tx1)}
+  .dsel-cp .dsel-cp-seq{font-weight:600;color:var(--tx2);font-family:'SF Mono',monospace;min-width:30px}
+  .dsel-cp .dsel-cp-name{flex:1}
+  .dsel-cp .dsel-cp-time{flex-shrink:0;font-size:9px}
+  .toast-c{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:2000;display:flex;flex-direction:column;gap:5px;align-items:center}
+  .toast{background:var(--bg4);border:1px solid var(--border);border-radius:var(--r-md);padding:9px 16px;font-size:11px;font-weight:500;box-shadow:0 6px 24px rgba(0,0,0,.4);display:flex;align-items:center;gap:6px;animation:ti .2s ease,to .2s ease 2.5s forwards}
+  @keyframes ti{from{opacity:0;transform:translateY(8px)}}@keyframes to{to{opacity:0;transform:translateY(-5px)}}
+  ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="top-logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 3v18M3 9h18"/></svg>Design Studio</div>
+  <div class="top-sep"></div><div class="top-proj">이커머스 앱 v2</div><div class="top-sp"></div>
+  <div class="top-avatars"><div class="top-av" style="background:#7b8aff;color:#fff">JK</div><div class="top-av" style="background:#3ed98e;color:#0b0d12">MH</div><div class="top-av" style="background:#edc644;color:#0b0d12">YS</div></div>
+</div>
+<div class="main">
+  <div class="p-left">
+    <div class="cv-section"><div class="sec-hdr">캔버스<button onclick="showToast('✨','새 캔버스 추가')">+</button></div><div class="cv-list" id="cvList"></div></div>
+    <div class="ly-section"><div class="sec-hdr">레이어</div><div class="ly-scroll" id="lyPanel"></div></div>
+  </div>
+  <div class="canvas">
+    <div class="canvas-grid"></div>
+    <div class="cc" id="c1" style="top:190px;left:36%"><svg viewBox="0 0 16 16"><path d="M1 1l5.5 14 2-5.5L14 7z" fill="#3ed98e" stroke="#0b0d12" stroke-width=".8"/></svg><div class="cc-l" style="background:#3ed98e;color:#0b0d12">민호</div></div>
+    <div class="cc" id="c2" style="top:340px;left:60%"><svg viewBox="0 0 16 16"><path d="M1 1l5.5 14 2-5.5L14 7z" fill="#edc644" stroke="#0b0d12" stroke-width=".8"/></svg><div class="cc-l" style="background:#edc644;color:#0b0d12">유선</div></div>
+    <div class="canvas-vp" id="cvVp"></div>
+  </div>
+  <div class="p-right">
+    <div class="p-right-hdr">버전 · 배포 이력</div>
+    <div class="p-scroll"><div class="env-bar" id="envBar"></div><div id="envChanged"></div><div class="tl" id="tlC"></div></div>
+    <div class="bot-bar" id="botBar"></div>
+  </div>
+</div>
+
+<!-- Publish Modal -->
+<div class="mo" id="pubMo"><div class="mo-box mo-sm">
+  <div class="mo-hdr"><h3>새 버전 발행</h3><p>현재 작업 내용을 버전으로 발행합니다.</p></div>
+  <div class="mo-body">
+    <div class="mo-fld"><label class="mo-lbl">버전 번호</label><div class="ver-disp"><span class="ver-num" id="pubVerNum">v1.2</span><label class="ver-major"><input type="checkbox" id="majCk" onchange="toggleMaj()">주요 변경 (Major)</label></div></div>
+    <div class="mo-fld"><label class="mo-lbl">버전 이름 <span style="color:var(--rd)">*</span></label><input class="mo-inp" id="pubName" placeholder="예: 프로모션 배너 추가"></div>
+    <div class="mo-fld" style="margin-bottom:0"><label class="mo-lbl">변경 사항 요약 (선택)</label><textarea class="mo-inp" id="pubDesc" placeholder="변경 내용을 간략히 기술"></textarea></div>
+  </div>
+  <div class="mo-ft"><button class="mo-btn cancel" onclick="closeMo('pubMo')">취소</button><button class="mo-btn ok" onclick="execPub()">발행</button></div>
+</div></div>
+
+<!-- Checkpoint Modal -->
+<div class="mo" id="cpMo"><div class="mo-box mo-sm">
+  <div class="mo-hdr"><h3>체크포인트 생성</h3><p>현재 작업 상태를 체크포인트로 저장합니다.</p></div>
+  <div class="mo-body">
+    <div class="mo-fld"><label class="mo-lbl">체크포인트명 <span style="color:var(--rd)">*</span></label><input class="mo-inp" id="cpName" placeholder="예: 배너 위치 조정 완료"></div>
+    <div class="mo-fld" style="margin-bottom:0"><label class="mo-lbl">변경사항 요약 (선택)</label><textarea class="mo-inp" id="cpSummary" placeholder="어떤 변경이 있었는지 간략히 기술"></textarea></div>
+  </div>
+  <div class="mo-ft"><button class="mo-btn cancel" onclick="closeMo('cpMo')">취소</button><button class="mo-btn ok" onclick="execCp()">생성</button></div>
+</div></div>
+
+<!-- Restore Modal -->
+<div class="mo" id="restMo"><div class="mo-box mo-sm">
+  <div class="mo-hdr"><h3>복원</h3><p id="restDesc"></p></div>
+  <div class="mo-body"><div class="restore-info"><span>💡</span><span>해당 버전의 DSL로 현재 작업 영역이 업데이트됩니다.</span></div></div>
+  <div class="mo-ft"><button class="mo-btn cancel" onclick="closeMo('restMo')">취소</button><button class="mo-btn ok" onclick="execRestore()">복원</button></div>
+</div></div>
+
+<!-- Deploy Modal -->
+<div class="mo" id="depMo"><div class="mo-box mo-sm">
+  <div class="mo-hdr"><h3>배포</h3><p id="depMoDesc"></p></div>
+  <div class="mo-body">
+    <div id="depCpInfo" style="margin-bottom:12px;padding:10px 12px;background:var(--ac-d);border:1px solid rgba(123,138,255,.2);border-radius:var(--r-md);font-size:10px;color:var(--ac-b);line-height:1.6;display:flex;gap:7px;align-items:flex-start"><span style="flex-shrink:0;font-size:14px">💾</span><div><div>해당 버전의 <strong>최신 체크포인트</strong> 기준으로 배포됩니다.</div><div id="depCpDetail" style="margin-top:4px;display:flex;align-items:center;gap:6px"><span id="depCpSeq" style="font-weight:600;font-family:'SF Mono',monospace"></span><span id="depCpName" style="color:var(--tx1)"></span></div></div></div>
+    <label class="mo-lbl">배포 환경 선택</label>
+    <div class="dep-env-sel" id="depEnvSel"></div>
+    <div class="dep-warn" id="depWarn"><span style="flex-shrink:0;font-size:14px">📋</span><div><div id="depWarnText"></div><div class="dep-change"><span class="dep-ver-old" id="depOldVer"></span><span style="color:var(--tx3)">→</span><span class="dep-ver-new" id="depNewVer"></span></div></div></div>
+  </div>
+  <div class="mo-ft"><button class="mo-btn cancel" onclick="closeMo('depMo')">취소</button><button class="mo-btn ok-gn" onclick="execDeploy()">배포</button></div>
+</div></div>
+
+<!-- Diff Modal -->
+<div class="mo" id="diffMo"><div class="mo-box mo-lg">
+  <div class="mo-hdr" style="display:flex;align-items:center;justify-content:space-between"><div><h3 id="diffTitle">변경 비교</h3><p id="diffSub"></p></div><button style="background:none;border:none;color:var(--tx3);cursor:pointer;font-size:18px;padding:4px" onclick="closeMo('diffMo')">✕</button></div>
+  <div class="diff-content" id="diffContent"></div>
+</div></div>
+
+<!-- Diff Target Selector Modal -->
+<div class="mo" id="diffSelMo"><div class="mo-box mo-sm">
+  <div class="mo-hdr"><h3>비교 대상 선택</h3><p id="diffSelDesc"></p></div>
+  <div class="mo-body" style="max-height:400px;overflow-y:auto">
+    <div id="diffSelList"></div>
+  </div>
+  <div class="mo-ft"><button class="mo-btn cancel" onclick="closeMo('diffSelMo')">취소</button></div>
+</div></div>
+
+<div class="toast-c" id="toastC"></div>
+
+<script>
+// ╔══════════════════════════════════════════════════════╗
+// ║  STATE — 모든 데이터의 단일 진실 공급원 (Single Source)   ║
+// ╚══════════════════════════════════════════════════════╝
+
+const ENVS = ['DEV','STG','PRD'];
+const ENV_META = {
+  DEV: { label:'개발',   color:'var(--yl)', tagCls:'dev', selCls:'sel-yl' },
+  STG: { label:'스테이징', color:'var(--cy)', tagCls:'stg', selCls:'sel-cy' },
+  PRD: { label:'운영',   color:'var(--gn)', tagCls:'live', selCls:'sel-gn' },
+};
+
+const state = {
+  selCv: 'cv_main',
+  selFr: 'f_home',
+  openLy: { f_home: true },
+  // 체크포인트 fold 상태: key = version.id or 'working', value = boolean
+  cpFold: {},
+  // modal temp
+  restTarget: null,
+  depTarget: null,
+  depSelEnv: null,
+  diffSource: null,
+};
+
+let _cpIdCounter = 100;
+let _verIdCounter = 100;
+function genCpId() { return 'cp_' + (++_cpIdCounter); }
+function genVerId() { return 'ver_' + (++_verIdCounter); }
+
+const canvases = [
+  { id:'cv_main', name:'메인 화면' },
+  { id:'cv_mypage', name:'마이페이지' },
+  { id:'cv_order', name:'주문/결제' },
+  { id:'cv_admin', name:'관리자 대시보드' },
+];
+
+const allFrames = {
+  cv_main: [
+    { id:'f_home', name:'메인 홈',
+      components:[{n:'AppBar',t:'Pattern'},{n:'PromoBanner',t:'Pattern'},{n:'CategoryTabs',t:'Composite'},{n:'ScrollView',t:'Layout',ch:[{n:'ProductCard ×6',t:'Pattern'}]}],
+      envDeploy:{DEV:{ver:'v1.1',prev:'v1.0'},STG:{ver:'v1.1',prev:'v1.0'},PRD:{ver:'v1.1',prev:'v1.0'}},
+      changed: true },
+    { id:'f_search', name:'검색',
+      components:[{n:'AppBar',t:'Pattern'},{n:'SearchBar',t:'Composite'},{n:'FilterChips',t:'Composite'},{n:'ResultList',t:'Layout'}],
+      envDeploy:{DEV:null,STG:null,PRD:null},
+      changed: false },
+    { id:'f_product', name:'상품 상세',
+      components:[{n:'ImageCarousel',t:'Pattern'},{n:'ProductInfo',t:'Composite'},{n:'ReviewSection',t:'Pattern'},{n:'BottomCTA',t:'Composite'}],
+      envDeploy:{DEV:null,STG:null,PRD:null},
+      changed: false },
+  ],
+  cv_mypage: [
+    { id:'f_profile', name:'프로필', components:[{n:'ProfileHeader',t:'Pattern'},{n:'MenuList',t:'Composite'}], envDeploy:{DEV:null,STG:null,PRD:null}, changed:false },
+    { id:'f_settings', name:'설정', components:[{n:'SettingsForm',t:'Pattern'}], envDeploy:{DEV:null,STG:null,PRD:null}, changed:false },
+  ],
+  cv_order: [
+    { id:'f_cart', name:'장바구니', components:[{n:'CartList',t:'Pattern'},{n:'OrderSummary',t:'Composite'}], envDeploy:{DEV:null,STG:null,PRD:null}, changed:false },
+    { id:'f_checkout', name:'결제', components:[{n:'PaymentForm',t:'Pattern'},{n:'AddressForm',t:'Composite'}], envDeploy:{DEV:null,STG:null,PRD:null}, changed:false },
+  ],
+  cv_admin: [
+    { id:'f_dashboard', name:'대시보드', components:[{n:'StatsGrid',t:'Pattern'},{n:'ChartPanel',t:'Composite'}], envDeploy:{DEV:null,STG:null,PRD:null}, changed:false },
+    { id:'f_products_mgmt', name:'상품 관리', components:[{n:'DataTable',t:'Pattern'},{n:'Toolbar',t:'Composite'}], envDeploy:{DEV:null,STG:null,PRD:null}, changed:false },
+  ],
+};
+
+// 타임라인: 프레임별 { workingCps:[], versions:[] }
+// 각 version: { id, label, name, desc, time, author, deploys:[], checkpoints:[] }
+const timelines = {
+  f_home: {
+    workingCps: [],
+    versions: [
+      { id:'ver_12', label:'v1.2', name:'CTA 개선', desc:'BottomCTA 위치 변경 · 색상 조정', time:'40분 전', author:'JK',
+        deploys:[],
+        checkpoints:[
+          { id:'cp_w1', name:'배너 위치 조정', summary:'PromoBanner의 top margin을 24→16으로 줄임', time:'10분 전', author:'JK' },
+          { id:'cp_w2', name:'카테고리 탭 스타일', summary:'CategoryTabs 폰트 사이즈 14→13, 간격 조정', time:'25분 전', author:'MH' },
+          { id:'cp_3', name:'CTA 색상 변경', summary:'BottomCTA 버튼 색상을 primary에서 accent로 변경', time:'45분 전', author:'JK' },
+          { id:'cp_2b', name:'CTA 위치 조정', summary:'BottomCTA를 하단 고정에서 스크롤 내 배치로 변경', time:'50분 전', author:'JK' },
+        ]},
+      { id:'ver_11', label:'v1.1', name:'프로모션 배너 추가', desc:'PromoBanner, CategoryTabs 추가 · ProductCard 6개로 확장', time:'1시간 전', author:'JK',
+        deploys:[{env:'PRD',time:'50분 전',by:'JK',cpSeq:2,cpName:'SearchBar 제거'},{env:'STG',time:'55분 전',by:'JK',cpSeq:2,cpName:'SearchBar 제거'},{env:'DEV',time:'1시간 전',by:'MH',cpSeq:1,cpName:'ProductCard 레이아웃 변경'}],
+        checkpoints:[
+          { id:'cp_2', name:'SearchBar 제거', summary:'SearchBar를 PromoBanner로 교체하기 위해 제거', time:'1시간 30분 전', author:'MH' },
+          { id:'cp_1', name:'ProductCard 레이아웃 변경', summary:'2열 그리드에서 카드 수를 4→6으로 확장', time:'2시간 전', author:'JK' },
+        ]},
+      { id:'ver_10', label:'v1.0', name:'최초 릴리즈', desc:'AppBar, SearchBar, ProductCard ×4', time:'어제 14:30', author:'JK',
+        deploys:[{env:'PRD',time:'어제 15:00',by:'JK',cpSeq:1,cpName:'초기 레이아웃 구성'},{env:'STG',time:'어제 14:45',by:'JK',cpSeq:1,cpName:'초기 레이아웃 구성'}],
+        checkpoints:[
+          { id:'cp_0', name:'초기 레이아웃 구성', summary:'AppBar + SearchBar + ScrollView 기본 구조 완성', time:'어제 14:00', author:'JK' },
+        ]},
+    ]
+  }
+};
+
+// ╔══════════════════════════════════════════════════════╗
+// ║  HELPERS — 상태 조회 유틸리티                           ║
+// ╚══════════════════════════════════════════════════════╝
+
+function getFr(fid) {
+  for (const k of Object.keys(allFrames)) {
+    const f = allFrames[k].find(x => x.id === fid);
+    if (f) return f;
+  }
+  return null;
+}
+
+function getTl(fid) {
+  if (!timelines[fid]) timelines[fid] = { workingCps: [], versions: [] };
+  return timelines[fid];
+}
+
+function parseVer(v) {
+  if (!v) return { M:0, m:0 };
+  const r = v.match(/v(\d+)\.(\d+)/);
+  return r ? { M:+r[1], m:+r[2] } : { M:0, m:0 };
+}
+
+function nextVer(fid, isMaj) {
+  const tl = getTl(fid);
+  let best = { M:0, m:0 };
+  tl.versions.forEach(v => {
+    const p = parseVer(v.label);
+    if (p.M > best.M || (p.M === best.M && p.m > best.m)) best = p;
+  });
+  return isMaj ? `v${best.M+1}.0` : `v${best.M}.${best.m+1}`;
+}
+
+function getLatestVer(fid) {
+  const tl = getTl(fid);
+  return tl.versions.length > 0 ? tl.versions[0] : null;
+}
+
+function getStatus(f) {
+  if (f.envDeploy.PRD) return '운영중';
+  if (f.envDeploy.STG || f.envDeploy.DEV) return '발행됨';
+  return '초안';
+}
+
+function getDispVer(f) {
+  return f.envDeploy.PRD?.ver || f.envDeploy.STG?.ver || f.envDeploy.DEV?.ver || null;
+}
+
+function stCls(s) { return s==='운영중'?'live':s==='발행됨'?'pub':'draft'; }
+
+function canPublish(fid) {
+  const tl = getTl(fid);
+  if (!tl.versions.length) return true;
+  const f = getFr(fid);
+  if (!f) return false;
+  return f.envDeploy.PRD?.ver === tl.versions[0].label;
+}
+
+function canDeployToAnyEnv(verLabel, fid) {
+  const tl = getTl(fid);
+  const f = getFr(fid);
+  if (!f) return false;
+  const vers = tl.versions;
+  const labelIdx = vers.findIndex(v => v.label === verLabel);
+  if (labelIdx < 0) return false;
+  for (const e of ENVS) {
+    const cur = f.envDeploy[e]?.ver;
+    if (!cur) return true;
+    const curIdx = vers.findIndex(v => v.label === cur);
+    if (curIdx > labelIdx) return true;
+  }
+  return false;
+}
+
+function verEnvTags(label, fid) {
+  const f = getFr(fid);
+  if (!f) return '';
+  return ENVS.filter(e => f.envDeploy[e]?.ver === label)
+    .map(e => `<span class="tl-tag ${ENV_META[e].tagCls}"><span class="bd" style="width:4px;height:4px;border-radius:50%;background:currentColor"></span>${ENV_META[e].label}</span>`)
+    .join('');
+}
+
+function isCpFoldOpen(key) {
+  return state.cpFold[key] === true;
+}
+
+// ╔══════════════════════════════════════════════════════╗
+// ║  ACTIONS — 상태 변경 함수                              ║
+// ╚══════════════════════════════════════════════════════╝
+
+function doPublish(fid, label, name, desc) {
+  const tl = getTl(fid);
+  const newVer = {
+    id: genVerId(),
+    label: label,
+    name: name || null,
+    desc: desc || null,
+    time: '방금 전',
+    author: 'JK',
+    deploys: [],
+    // 최초 발행(버전 없는 상태)이면 workingCps를 포함, 아니면 빈 배열
+    checkpoints: tl.versions.length === 0 ? [...tl.workingCps] : [],
+  };
+  tl.workingCps = [];
+  tl.versions.unshift(newVer);
+  const f = getFr(fid);
+  if (f) f.changed = false;
+  state.cpFold[newVer.id] = true;
+}
+
+function doCreateCheckpoint(fid, name, summary) {
+  const tl = getTl(fid);
+  const cp = {
+    id: genCpId(),
+    name: name,
+    summary: summary || null,
+    time: '방금 전',
+    author: 'JK',
+  };
+  // 최신 버전이 있으면 해당 버전에, 없으면 workingCps에
+  if (tl.versions.length > 0) {
+    tl.versions[0].checkpoints.unshift(cp);
+    // fold 열기
+    state.cpFold[tl.versions[0].id] = true;
+  } else {
+    tl.workingCps.unshift(cp);
+    state.cpFold['working'] = true;
+  }
+  // changed 표시
+  const f = getFr(fid);
+  if (f && f.envDeploy.PRD) f.changed = true;
+}
+
+function doRestore(fid) {
+  const f = getFr(fid);
+  if (f && f.envDeploy.PRD) f.changed = true;
+}
+
+function doDeploy(fid, verLabel, env) {
+  const f = getFr(fid);
+  if (!f) return;
+  const prev = f.envDeploy[env]?.ver || null;
+  f.envDeploy[env] = { ver: verLabel, prev: prev };
+  // 배포 이력 — 배포 시점의 최신 체크포인트 기록
+  const tl = getTl(fid);
+  const ver = tl.versions.find(v => v.label === verLabel);
+  if (ver) {
+    if (!ver.deploys) ver.deploys = [];
+    const cpCount = ver.checkpoints ? ver.checkpoints.length : 0;
+    const latestCp = cpCount > 0 ? ver.checkpoints[0] : null;
+    ver.deploys.unshift({
+      env: env,
+      time: '방금 전',
+      by: 'JK',
+      cpSeq: cpCount,       // 배포 시점의 최신 cp 순번
+      cpName: latestCp ? latestCp.name : null,
+    });
+  }
+  // PRD에 최신 배포 → changed 해제
+  if (env === 'PRD' && tl.versions[0]?.label === verLabel) {
+    f.changed = false;
+  }
+}
+
+// ╔══════════════════════════════════════════════════════╗
+// ║  RENDER — 상태를 읽어서 DOM 그리기                      ║
+// ╚══════════════════════════════════════════════════════╝
+
+function rCvList() {
+  document.getElementById('cvList').innerHTML = canvases.map(c => {
+    const fs = allFrames[c.id] || [];
+    return `<div class="cv-item${c.id===state.selCv?' act':''}" onclick="selCanvas('${c.id}')"><div class="cv-ico"><div class="cv-ico-r"></div><div class="cv-ico-r"></div></div><div class="cv-info"><div class="cv-nm">${c.name}</div><div class="cv-mt">프레임 ${fs.length}개</div></div></div>`;
+  }).join('');
+}
+
+function rLayers() {
+  const fs = allFrames[state.selCv] || [];
+  document.getElementById('lyPanel').innerHTML = fs.map(f => {
+    const isO = state.openLy[f.id], isA = f.id===state.selFr;
+    const st = getStatus(f), sc = stCls(st), ver = getDispVer(f);
+    let bds = `<span class="b b-${sc}"><span class="bd"></span>${st}</span>`;
+    if (ver) bds += `<span style="font-size:8px;color:var(--tx3);font-weight:600">${ver}</span>`;
+    if (f.changed) bds += `<span class="b b-chg">수정됨</span>`;
+    const comps = f.components.map(c => {
+      let sub = '';
+      if (c.ch) sub = c.ch.map(ch => `<div class="ly-c" style="padding-left:22px"><span class="ly-ct">${ch.t}</span><span>${ch.n}</span></div>`).join('');
+      return `<div class="ly-c"><span class="ly-ct">${c.t}</span><span>${c.n}</span></div>${sub}`;
+    }).join('');
+    return `<div class="ly-f"><div class="ly-fh${isA?' act':''}" onclick="selFrame('${f.id}')"><svg class="ly-tog${isO?' open':''}" viewBox="0 0 16 16" fill="currentColor" onclick="event.stopPropagation();togLy('${f.id}')"><path d="M6 3l5 5-5 5z"/></svg><span class="ly-fn">${f.name}</span><div class="ly-fb">${bds}</div></div><div class="ly-ch${isO?' open':''}" id="lc_${f.id}">${comps}</div></div>`;
+  }).join('');
+}
+
+function rCanvas() {
+  const fs = allFrames[state.selCv] || [];
+  document.getElementById('cvVp').innerHTML = fs.map(f => {
+    const st = getStatus(f), sc = stCls(st), ver = getDispVer(f);
+    let lb = `<span class="b b-${sc}"><span class="bd"></span>${st}</span>`;
+    if (ver) lb += `<span class="b" style="background:var(--bg4);color:var(--tx2)">${ver}</span>`;
+    if (f.changed) lb += `<div class="cf-chg" title="배포 후 수정됨"></div>`;
+    const bks = f.components.slice(0,3).map(c => `<div class="cf-blk"><div class="cf-blk-l">${c.t}.${c.n}</div><div class="cf-ph"></div><div class="cf-ph"></div></div>`).join('');
+    return `<div class="cf${f.id===state.selFr?' sel':''}" onclick="selFrame('${f.id}')"><div class="cf-lbl"><span>${f.name}</span><div class="cf-lbl-badges">${lb}</div></div><div class="cf-brd"><div class="cf-hdr">${f.name}</div><div class="cf-body">${bks}</div></div></div>`;
+  }).join('');
+}
+
+function rEnvBar() {
+  const f = getFr(state.selFr);
+  const el = document.getElementById('envBar');
+  const chgEl = document.getElementById('envChanged');
+  if (!f) { el.innerHTML=''; chgEl.innerHTML=''; return; }
+  el.innerHTML = ENVS.map(e => {
+    const ed = f.envDeploy[e];
+    return `<div class="env-card"><div class="env-card-label"><span class="env-dot" style="background:${ENV_META[e].color}"></span>${ENV_META[e].label}</div><div class="env-card-ver" style="color:${ed?ENV_META[e].color:'var(--tx3)'}">${ed?ed.ver:'—'}</div>${ed?.prev?`<div class="env-card-prev">이전: ${ed.prev}</div>`:''}</div>`;
+  }).join('');
+  chgEl.innerHTML = (f.changed)
+    ? `<div class="env-changed"><span style="width:6px;height:6px;border-radius:50%;background:var(--or);flex-shrink:0;animation:pls 2s infinite"></span>최신 버전 발행 이후 수정된 내용이 있습니다</div>`
+    : '';
+}
+
+function renderCpBlock(cps, foldKey, label, verLabel) {
+  if (!cps || !cps.length) return '';
+  const isOpen = isCpFoldOpen(foldKey);
+  const total = cps.length;
+  return `<div>
+    <div class="cp-tog${isOpen?' exp':''}" onclick="toggleCpFold('${foldKey}')">
+      <svg viewBox="0 0 16 16" fill="currentColor"><path d="M6 3l5 5-5 5z"/></svg>${label} ${total}건
+    </div>
+    <div class="cp-list${isOpen?' show':''}">${cps.map((cp, i) => {
+      const seq = total - i;
+      const cpRef = verLabel ? `${verLabel}/cp-${seq}` : `cp-${seq}`;
+      const tooltip = cp.summary
+        ? `<div class="tip" style="white-space:normal;max-width:220px;left:0;transform:none;">${cp.summary}</div>`
+        : '';
+      return `<div class="cp-item"><div class="tl-trk"><div class="tl-d cp-d"></div><div class="tl-ln" style="min-height:5px"></div></div><div class="cp-body"><span class="cp-seq">cp-${seq}</span><div class="cp-name-wrap"><span class="cp-name">${cp.name}</span>${tooltip}</div><div class="cp-meta"><span>${cp.time}</span><span class="tl-au"><span class="tl-au-d" style="background:#7b8aff"></span>${cp.author}</span></div><div class="cp-acts"><button class="tl-btn" style="font-size:8px;padding:2px 6px" onclick="openDiffSel('${verLabel||''}',${seq})">변경 비교</button><button class="tl-btn" style="font-size:8px;padding:2px 6px" onclick="openRest('${cpRef}')">복원</button></div></div></div>`;
+    }).join('')}</div>
+  </div>`;
+}
+
+function rTimeline() {
+  const el = document.getElementById('tlC');
+  const tl = timelines[state.selFr];
+
+  // 버전도 없고 workingCps도 없으면 이력 없음
+  if (!tl || (!tl.versions.length && (!tl.workingCps || !tl.workingCps.length))) {
+    el.innerHTML = '<div style="text-align:center;color:var(--tx3);padding:28px 0;font-size:11px">이력 없음</div>';
+    return;
+  }
+  const f = getFr(state.selFr);
+  let html = '';
+
+  // 버전이 없는 상태에서의 workingCps (최초 발행 전 체크포인트)
+  if (!tl.versions.length && tl.workingCps && tl.workingCps.length > 0) {
+    if (!('working' in state.cpFold)) state.cpFold['working'] = true;
+    html += renderCpBlock(tl.workingCps, 'working', '체크포인트', null);
+  }
+
+  // 버전 목록
+  tl.versions.forEach((ver, vi) => {
+    const envTags = verEnvTags(ver.label, state.selFr);
+
+    // dot 색상
+    let dotCls = 'ver';
+    if (f?.envDeploy.PRD?.ver === ver.label) dotCls = 'dep-gn';
+    else if (f?.envDeploy.STG?.ver === ver.label) dotCls = 'dep-cy';
+    else if (f?.envDeploy.DEV?.ver === ver.label) dotCls = 'dep-yl';
+
+    // 배포 로그 — 환경별 최신 1건만 표시
+    let depLog = '';
+    if (ver.deploys?.length) {
+      const latestByEnv = {};
+      ver.deploys.forEach(d => { if (!latestByEnv[d.env]) latestByEnv[d.env] = d; });
+      const entries = Object.values(latestByEnv);
+      depLog = `<div class="tl-dep-log">${entries.map(d => {
+        const cpTag = d.cpSeq ? `<span style="color:var(--tx2);font-weight:500">cp-${d.cpSeq}</span>` : '';
+        return `<div class="tl-dep-entry"><span class="dep-env" style="color:${ENV_META[d.env].color}">${ENV_META[d.env].label}</span> 배포 ${cpTag} · ${d.time} · ${d.by}</div>`;
+      }).join('')}</div>`;
+    }
+
+    // 액션 버튼 (배포만 버전 레벨)
+    let acts = [];
+
+    // 운영 배포 이력이 있는지 확인 (현재 또는 과거)
+    const hasBeenDeployedToPrd = ver.deploys && ver.deploys.some(d => d.env === 'PRD');
+    const canDep = canDeployToAnyEnv(ver.label, state.selFr);
+    const hasCps = ver.checkpoints && ver.checkpoints.length > 0;
+
+    if (hasBeenDeployedToPrd) {
+      // 운영 배포 이력 있음 → 비활성
+      acts.push(`<div class="tl-btn-wrap"><button class="tl-btn gn disabled">배포</button><div class="tip">운영 배포가 완료된 버전입니다</div></div>`);
+    } else if (canDep) {
+      if (hasCps) {
+        acts.push(`<button class="tl-btn gn" onclick="openDep('${ver.label}')">배포</button>`);
+      } else {
+        acts.push(`<div class="tl-btn-wrap"><button class="tl-btn gn disabled">배포</button><div class="tip">체크포인트가 없는 버전은 배포할 수 없습니다</div></div>`);
+      }
+    }
+
+    // 체크포인트 fold 초기 상태: 최신 버전 중 CP가 있는 첫 번째만 펼침
+    if (!(ver.id in state.cpFold)) {
+      const firstWithCps = tl.versions.findIndex(v => v.checkpoints && v.checkpoints.length > 0);
+      state.cpFold[ver.id] = (vi === firstWithCps);
+    }
+
+    // ① 체크포인트 (버전 위에 표시)
+    html += renderCpBlock(ver.checkpoints, ver.id, `${ver.label} 체크포인트`, ver.label);
+
+    // ② 버전 헤더
+    html += `<div class="tl-item"><div class="tl-trk"><div class="tl-d ${dotCls}"></div><div class="tl-ln"></div></div><div class="tl-body"><div class="tl-hdr"><span class="tl-title">${ver.label}${ver.name?' — '+ver.name:''}</span><div class="tl-tags">${envTags}</div></div>${ver.desc?`<div class="tl-desc">${ver.desc}</div>`:''}${depLog}<div class="tl-time">${ver.time} <span class="tl-au"><span class="tl-au-d" style="background:#7b8aff"></span>${ver.author}</span></div><div class="tl-acts">${acts.join('')}</div></div></div>`;
+  });
+
+  el.innerHTML = html;
+}
+
+function rBotBar() {
+  const pubOk = canPublish(state.selFr);
+  const el = document.getElementById('botBar');
+  const svgSave = `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 2h9l3 3v9H2z"/><path d="M5 2v4h5V2"/><path d="M5 14v-4h6v4"/></svg>`;
+  const svgPub = `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2v9M4 5l4-3 4 3"/><path d="M2 11v2a1 1 0 001 1h10a1 1 0 001-1v-2"/></svg>`;
+  // 최신 버전이 운영 배포 완료 → 체크포인트 생성 비활성
+  const tl = getTl(state.selFr);
+  const latestVer = tl.versions.length > 0 ? tl.versions[0] : null;
+  const latestDeployedToPrd = latestVer && latestVer.deploys && latestVer.deploys.some(d => d.env === 'PRD');
+  el.innerHTML = `
+    ${latestDeployedToPrd
+      ? `<div class="bot-btn-wrap" style="flex:1"><button class="bot-btn bot-save disabled" style="width:100%">${svgSave}체크포인트 생성</button><div class="tip">운영 배포가 완료된 버전에는 체크포인트를 생성할 수 없습니다</div></div>`
+      : `<button class="bot-btn bot-save" onclick="openCpModal()">${svgSave}체크포인트 생성</button>`
+    }
+    ${pubOk
+      ? `<button class="bot-btn bot-pub" style="flex:2" onclick="openPubModal()">${svgPub}새 버전 발행</button>`
+      : `<div class="bot-btn-wrap"><button class="bot-btn bot-pub disabled" style="width:100%">${svgPub}새 버전 발행</button><div class="tip">최신 버전이 운영(PRD)에 배포되지 않아 새 버전을 발행할 수 없습니다</div></div>`
+    }`;
+}
+
+function renderAll() { rCvList(); rLayers(); rCanvas(); rEnvBar(); rTimeline(); rBotBar(); }
+
+// ╔══════════════════════════════════════════════════════╗
+// ║  UI HANDLERS — 사용자 인터랙션 처리                     ║
+// ╚══════════════════════════════════════════════════════╝
+
+function selCanvas(id) { state.selCv=id; const fs=allFrames[id]||[]; state.selFr=fs.length?fs[0].id:null; state.openLy={}; if(state.selFr) state.openLy[state.selFr]=true; renderAll(); }
+function selFrame(id) { state.selFr=id; if(!state.openLy[id]) state.openLy[id]=true; renderAll(); }
+function togLy(id) { state.openLy[id]=!state.openLy[id]; rLayers(); }
+function toggleCpFold(key) { state.cpFold[key] = !state.cpFold[key]; rTimeline(); }
+
+// 발행
+function openPubModal() {
+  if (!canPublish(state.selFr)) return;
+  document.getElementById('majCk').checked = false;
+  document.getElementById('pubVerNum').textContent = nextVer(state.selFr, false);
+  document.getElementById('pubVerNum').className = 'ver-num';
+  document.getElementById('pubName').value = '';
+  document.getElementById('pubDesc').value = '';
+  document.getElementById('pubMo').classList.add('show');
+}
+function toggleMaj() {
+  const m = document.getElementById('majCk').checked;
+  const el = document.getElementById('pubVerNum');
+  el.textContent = nextVer(state.selFr, m);
+  el.className = 'ver-num' + (m ? ' major' : '');
+}
+function execPub() {
+  const m = document.getElementById('majCk').checked;
+  const lab = nextVer(state.selFr, m);
+  const nm = document.getElementById('pubName').value.trim();
+  if (!nm) return showToast('⚠️', '버전 이름을 입력하세요');
+  const desc = document.getElementById('pubDesc').value.trim();
+  doPublish(state.selFr, lab, nm, desc);
+  closeMo('pubMo');
+  showToast('🎉', `${lab} 발행됨`);
+  renderAll();
+}
+
+// 체크포인트
+function openCpModal() {
+  document.getElementById('cpName').value = '';
+  document.getElementById('cpSummary').value = '';
+  document.getElementById('cpMo').classList.add('show');
+}
+function execCp() {
+  const name = document.getElementById('cpName').value.trim();
+  if (!name) return showToast('⚠️', '체크포인트명을 입력하세요');
+  const summary = document.getElementById('cpSummary').value.trim();
+  doCreateCheckpoint(state.selFr, name, summary);
+  closeMo('cpMo');
+  showToast('💾', '체크포인트 생성 완료');
+  renderAll();
+}
+
+// 복원 (체크포인트 단위)
+function openRest(cpRef) {
+  state.restTarget = cpRef;
+  document.getElementById('restDesc').textContent = `${cpRef}의 상태를 현재 작업 영역으로 복원`;
+  document.getElementById('restMo').classList.add('show');
+}
+function execRestore() {
+  if (!state.restTarget) return;
+  doRestore(state.selFr);
+  closeMo('restMo');
+  showToast('📋', `${state.restTarget}의 DSL로 작업 영역이 업데이트되었습니다`);
+  state.restTarget = null;
+  renderAll();
+}
+
+// 변경 비교 — 대상 선택
+function openDiffSel(verLabel, cpSeq) {
+  state.diffSource = { verLabel, cpSeq };
+  const sourceLabel = verLabel ? `${verLabel}/cp-${cpSeq}` : `cp-${cpSeq}`;
+  document.getElementById('diffSelDesc').textContent = `${sourceLabel}과(와) 비교할 대상을 선택하세요.`;
+
+  const tl = getTl(state.selFr);
+  let html = '';
+
+  // 모든 버전의 체크포인트를 목록으로 표시
+  tl.versions.forEach(ver => {
+    if (!ver.checkpoints || !ver.checkpoints.length) return;
+    const total = ver.checkpoints.length;
+    html += `<div class="dsel-ver">`;
+    html += `<div class="dsel-ver-hdr"><span class="dsel-dot" style="background:var(--ac)"></span>${ver.label} — ${ver.name || ''}</div>`;
+    ver.checkpoints.forEach((cp, i) => {
+      const seq = total - i;
+      const isSelf = (ver.label === verLabel && seq === cpSeq);
+      if (isSelf) {
+        html += `<div class="dsel-cp" style="opacity:.35;cursor:default"><span class="dsel-cp-seq">cp-${seq}</span><span class="dsel-cp-name">${cp.name}</span><span class="dsel-cp-time">(현재 선택)</span></div>`;
+      } else {
+        html += `<div class="dsel-cp" onclick="execDiffCompare('${ver.label}',${seq})"><span class="dsel-cp-seq">cp-${seq}</span><span class="dsel-cp-name">${cp.name}</span><span class="dsel-cp-time">${cp.time}</span></div>`;
+      }
+    });
+    html += `</div>`;
+  });
+
+  if (!html) html = '<div style="text-align:center;color:var(--tx3);padding:20px;font-size:11px">비교 가능한 체크포인트가 없습니다</div>';
+  document.getElementById('diffSelList').innerHTML = html;
+  document.getElementById('diffSelMo').classList.add('show');
+}
+
+function execDiffCompare(targetVerLabel, targetCpSeq) {
+  closeMo('diffSelMo');
+  const src = state.diffSource;
+  const srcLabel = src.verLabel ? `${src.verLabel}/cp-${src.cpSeq}` : `cp-${src.cpSeq}`;
+  const tgtLabel = `${targetVerLabel}/cp-${targetCpSeq}`;
+
+  document.getElementById('diffTitle').textContent = `${srcLabel} ↔ ${tgtLabel} 변경 비교`;
+  document.getElementById('diffSub').textContent = `${getFr(state.selFr)?.name||''} 프레임의 시각적 변경 비교`;
+  const f = getFr(state.selFr);
+
+  // 시뮬레이션: 실제로는 두 체크포인트의 DSL을 비교
+  const leftBlocks = [{n:'AppBar',t:'Pattern',s:'same'},{n:'SearchBar',t:'Composite',s:'removed'},{n:'ScrollView',t:'Layout',s:'same'},{n:'ProductCard ×4',t:'Pattern',s:'changed'}];
+  const rightBlocks = [{n:'AppBar',t:'Pattern',s:'same'},{n:'PromoBanner',t:'Pattern',s:'added'},{n:'CategoryTabs',t:'Composite',s:'added'},{n:'ScrollView',t:'Layout',s:'same'},{n:'ProductCard ×6',t:'Pattern',s:'changed'}];
+
+  function renderSide(blocks, label, color) {
+    return `<div class="diff-side"><div class="diff-side-hdr"><div style="width:6px;height:6px;border-radius:50%;background:${color}"></div>${label}</div><div class="diff-preview"><div class="diff-preview-hdr"><span>${f?.name||''}</span><span style="font-size:8px;color:var(--tx3)">${label}</span></div><div class="diff-preview-body">${blocks.map(b => {
+      const stColor={same:'',added:'var(--gn)',removed:'var(--rd)',changed:'var(--yl)'};
+      const stLabel={same:'',added:'+ 추가',removed:'− 삭제',changed:'~ 변경'};
+      return `<div class="diff-block ${b.s}"><div class="diff-block-label">${b.s!=='same'?`<span style="color:${stColor[b.s]};font-size:9px">${stLabel[b.s]}</span>`:''}<span>${b.t?b.t+'.':''}${b.n}</span></div><div class="cf-ph"></div><div class="cf-ph" style="width:55%"></div></div>`;
+    }).join('')}</div></div></div>`;
+  }
+  document.getElementById('diffContent').innerHTML =
+    renderSide(leftBlocks, srcLabel, 'var(--yl)') +
+    '<div class="diff-arrow">↔</div>' +
+    renderSide(rightBlocks, tgtLabel, 'var(--gn)');
+  document.getElementById('diffMo').classList.add('show');
+}
+
+// 배포
+function openDep(v) {
+  state.depTarget = v;
+  state.depSelEnv = null;
+  document.getElementById('depMoDesc').textContent = `${v}을 배포할 환경을 선택하세요.`;
+  const f = getFr(state.selFr);
+  // 체크포인트 정보
+  const tl = getTl(state.selFr);
+  const ver = tl.versions.find(x => x.label === v);
+  const cpCount = ver?.checkpoints?.length || 0;
+  const latestCp = cpCount > 0 ? ver.checkpoints[0] : null;
+  document.getElementById('depCpSeq').textContent = latestCp ? `cp-${cpCount}` : '';
+  document.getElementById('depCpName').textContent = latestCp ? latestCp.name : '';
+  // 환경 선택
+  document.getElementById('depEnvSel').innerHTML = ENVS.map(e => {
+    const cur = f?.envDeploy[e]?.ver;
+    return `<div class="dep-env-opt" id="deo_${e}" onclick="pickDepEnv('${e}')"><div class="dep-env-name" style="color:${ENV_META[e].color}">${ENV_META[e].label}</div><div class="dep-env-cur">${cur?'현재: '+cur:'미배포'}</div></div>`;
+  }).join('');
+  document.getElementById('depWarn').style.display = 'none';
+  document.getElementById('depMo').classList.add('show');
+}
+function pickDepEnv(e) {
+  state.depSelEnv = e;
+  document.querySelectorAll('.dep-env-opt').forEach(x => { x.classList.remove('sel-gn','sel-cy','sel-yl'); });
+  document.getElementById('deo_'+e).classList.add(ENV_META[e].selCls);
+  const f = getFr(state.selFr);
+  const cur = f?.envDeploy[e]?.ver;
+  const w = document.getElementById('depWarn');
+  w.style.display = 'flex';
+  document.getElementById('depWarnText').textContent = cur
+    ? `${ENV_META[e].label} 환경의 배포 버전이 변경됩니다.`
+    : `${ENV_META[e].label} 환경에 처음으로 배포됩니다.`;
+  document.getElementById('depOldVer').textContent = cur || '미배포';
+  document.getElementById('depNewVer').textContent = state.depTarget;
+}
+function execDeploy() {
+  if (!state.depTarget || !state.depSelEnv) return showToast('⚠️', '환경을 선택하세요');
+  doDeploy(state.selFr, state.depTarget, state.depSelEnv);
+  closeMo('depMo');
+  showToast('🚀', `${state.depTarget} → ${ENV_META[state.depSelEnv].label} 배포 완료`);
+  state.depTarget = null;
+  state.depSelEnv = null;
+  renderAll();
+}
+
+// 변경 비교
+function closeMo(id) { document.getElementById(id).classList.remove('show'); }
+function showToast(i,m) { const c=document.getElementById('toastC'),t=document.createElement('div');t.className='toast';t.innerHTML=`<span>${i}</span>${m}`;c.appendChild(t);setTimeout(()=>t.remove(),3000); }
+
+// Cursors
+setInterval(()=>{const e=document.getElementById('c1');e.style.top=(150+Math.random()*250)+'px';e.style.left=(28+Math.random()*35)+'%';},2800);
+setInterval(()=>{const e=document.getElementById('c2');e.style.top=(170+Math.random()*230)+'px';e.style.left=(42+Math.random()*25)+'%';},3400);
+
+// Init
+renderAll();
+</script>
+</body>
+</html>
